@@ -75,67 +75,83 @@ def load_data_from_db():
     conn.close()
     return df
 
+
 # ---------------------------------------------------------
-# دالة لدمج بيانات predictions مع copper_data
+# دالة لإعادة ترتيب جميع البيانات في قاعدة البيانات
 # ---------------------------------------------------------
-def merge_predictions_with_copper_data():
-    """دمج بيانات predictions مع copper_data وإرجاع DataFrame موحد"""
-    conn = sqlite3.connect(DB_FILE)
-    
-    # قراءة بيانات copper_data
-    copper_df = pd.read_sql_query("SELECT * FROM copper_data", conn)
-    
-    # قراءة بيانات predictions
-    predictions_df = pd.read_sql_query("SELECT * FROM predictions", conn)
-    
-    conn.close()
-    
-    if predictions_df.empty:
-        # تحويل date إلى datetime في copper_df
-        copper_df['date'] = pd.to_datetime(copper_df['date'], errors='coerce')
-        return copper_df
-    
-    # تحويل predictions إلى نفس تنسيق copper_data
-    # نحتاج إلى إضافة عمود Next_Day_Copper_Price من predicted_price
-    predictions_merged = predictions_df.copy()
-    predictions_merged['Next_Day_Copper_Price'] = predictions_merged['predicted_price']
-    
-    # اختيار الأعمدة المطلوبة من predictions لتتطابق مع copper_data
-    # copper_data يحتوي على: date, global_demand_index, oil_price, usd_index, 
-    # china_industry_output, energy_cost_index, market_sentiment, 
-    # supply_disruption_index, copper_price, Next_Day_Copper_Price
-    
-    predictions_formatted = pd.DataFrame({
-        'date': predictions_merged['date'],
-        'global_demand_index': predictions_merged['global_demand_index'],
-        'oil_price': predictions_merged['oil_price'],
-        'usd_index': predictions_merged['usd_index'],
-        'china_industry_output': predictions_merged['china_industry_output'],
-        'energy_cost_index': predictions_merged['energy_cost_index'],
-        'market_sentiment': predictions_merged['market_sentiment'],
-        'supply_disruption_index': predictions_merged['supply_disruption_index'],
-        'copper_price': predictions_merged['copper_price'],
-        'Next_Day_Copper_Price': predictions_merged['Next_Day_Copper_Price']
-    })
-    
-    # دمج البيانات
-    merged_df = pd.concat([copper_df, predictions_formatted], ignore_index=True)
-    
-    # تحويل date إلى datetime object للترتيب الصحيح
-    # محاولة تنسيقات مختلفة للتاريخ
-    merged_df['date'] = pd.to_datetime(merged_df['date'], errors='coerce', infer_datetime_format=True)
-    
-    # إزالة الصفوف التي فشل تحويل تاريخها
-    merged_df = merged_df.dropna(subset=['date'])
-    
-    # إزالة التكرارات بناءً على date (إذا كان هناك نفس التاريخ في كلا الجدولين)
-    # نفضل البيانات من predictions إذا كانت أحدث
-    merged_df = merged_df.sort_values('date', ascending=False).drop_duplicates(subset=['date'], keep='first')
-    
-    # تحويل date مرة أخرى إلى string بتنسيق موحد (YYYY-MM-DD) للعرض
-    merged_df['date'] = merged_df['date'].dt.strftime('%Y-%m-%d')
-    
-    return merged_df
+def reorder_copper_data():
+    """إعادة ترتيب جميع البيانات في جدول copper_data حسب التاريخ"""
+    try:
+        conn = sqlite3.connect(DB_FILE)
+        
+        # قراءة جميع البيانات
+        df = pd.read_sql_query("SELECT * FROM copper_data", conn)
+        
+        if df.empty or 'date' not in df.columns:
+            conn.close()
+            return
+        
+        # إنشاء عمود مؤقت للترتيب
+        # محاولة تحويل التاريخ بطرق متعددة للتأكد من التحويل الصحيح
+        # استخدام infer_datetime_format للتعرف التلقائي على التنسيق
+        df['date_datetime'] = pd.to_datetime(df['date'], errors='coerce', infer_datetime_format=True)
+        
+        # فصل البيانات الصالحة عن غير الصالحة
+        df_valid = df[df['date_datetime'].notna()].copy()
+        df_invalid = df[df['date_datetime'].isna()].copy()
+        
+        # ترتيب البيانات الصالحة حسب التاريخ (تنازلي - من الأحدث إلى الأقدم)
+        if not df_valid.empty:
+            df_valid = df_valid.sort_values('date_datetime', ascending=False, na_position='last', kind='mergesort')
+            df_valid = df_valid.reset_index(drop=True)
+            # تحويل التاريخ إلى string بعد الترتيب
+            df_valid['date'] = df_valid['date_datetime'].apply(lambda x: x.strftime('%Y-%m-%d') if pd.notna(x) else None)
+            
+            # طباعة أول وآخر تاريخ للتحقق (للتطوير فقط)
+            if len(df_valid) > 0:
+                print(f"[reorder_copper_data] أول تاريخ بعد الترتيب: {df_valid['date'].iloc[0]}, آخر تاريخ: {df_valid['date'].iloc[-1]}, عدد الصفوف: {len(df_valid)}")
+        
+        # دمج البيانات الصالحة وغير الصالحة
+        # البيانات الصالحة أولاً (مرتبة تنازلياً - من الأحدث إلى الأقدم)، ثم البيانات غير الصالحة
+        if not df_invalid.empty:
+            df_invalid = df_invalid.reset_index(drop=True)
+            # عند الترتيب التنازلي في قاعدة البيانات، البيانات غير الصالحة في النهاية
+            df = pd.concat([df_valid, df_invalid], ignore_index=True)
+        else:
+            df = df_valid
+        
+        # إزالة العمود المؤقت
+        if 'date_datetime' in df.columns:
+            df = df.drop(columns=['date_datetime'])
+        
+        # تنظيف البيانات قبل الحفظ
+        if 'date' in df.columns:
+            df = df.drop_duplicates(subset=['date'], keep='last')
+        if 'date' in df.columns:
+            df = df[df['date'].notna()]
+        df = df.reset_index(drop=True)
+        
+        # حفظ البيانات المرتبة مرة أخرى في قاعدة البيانات
+        # التأكد من أن البيانات مرتبة بشكل صحيح قبل الحفظ
+        if 'date' in df.columns and not df.empty:
+            # التحقق من الترتيب مرة أخرى قبل الحفظ
+            df['date_datetime_check'] = pd.to_datetime(df['date'], errors='coerce', infer_datetime_format=True)
+            df_sorted = df.sort_values('date_datetime_check', ascending=False, na_position='last', kind='mergesort')
+            df_sorted = df_sorted.reset_index(drop=True)
+            df_sorted = df_sorted.drop(columns=['date_datetime_check'])
+            df = df_sorted
+        
+        df.to_sql('copper_data', conn, if_exists='replace', index=False)
+        
+        conn.commit()
+        conn.close()
+        print(f"تم إعادة ترتيب جميع البيانات في جدول copper_data - عدد الصفوف: {len(df)}")
+        if 'date' in df.columns and len(df) > 0:
+            print(f"أول تاريخ في قاعدة البيانات: {df['date'].iloc[0]}, آخر تاريخ: {df['date'].iloc[-1]}")
+    except Exception as e:
+        print(f"خطأ في إعادة ترتيب البيانات: {e}")
+        import traceback
+        traceback.print_exc()
 
 # ---------------------------------------------------------
 # دالة لحفظ التوقع في قاعدة البيانات
@@ -177,6 +193,95 @@ def save_prediction_to_db(features_dict, predicted_price):
         print(f"تم حفظ التوقع في قاعدة البيانات: {datetime_str}")
     except Exception as e:
         print(f"خطأ في حفظ التوقع: {e}")
+
+
+# ---------------------------------------------------------
+# دالة لحفظ التوقع في جدول copper_data مع ترتيب البيانات
+# ---------------------------------------------------------
+def save_prediction_to_copper_data(features_dict, predicted_price):
+    """حفظ التوقع كسطر جديد في جدول copper_data مع ترتيب البيانات حسب التاريخ"""
+    try:
+        now = datetime.now()
+        date_str = now.strftime('%Y-%m-%d')
+        
+        conn = sqlite3.connect(DB_FILE)
+        
+        # قراءة البيانات الحالية
+        df = pd.read_sql_query("SELECT * FROM copper_data", conn)
+        
+        # إنشاء سطر جديد
+        new_row = {
+            'date': date_str,
+            'global_demand_index': features_dict['global_demand_index'],
+            'oil_price': features_dict['oil_price'],
+            'usd_index': features_dict['usd_index'],
+            'china_industry_output': features_dict['china_industry_output'],
+            'energy_cost_index': features_dict['energy_cost_index'],
+            'market_sentiment': features_dict['market_sentiment'],
+            'supply_disruption_index': features_dict['supply_disruption_index'],
+            'copper_price': features_dict['copper_price'],
+            'Next_Day_Copper_Price': float(predicted_price)
+        }
+        
+        # إذا كان التاريخ موجوداً مسبقاً، نستبدل السطر القديم
+        if 'date' in df.columns and not df.empty:
+            df['date'] = pd.to_datetime(df['date'], format='%Y-%m-%d', errors='coerce')
+            date_to_check = pd.to_datetime(date_str, errors='coerce')
+            # إزالة الصفوف التي لها نفس التاريخ
+            df = df[df['date'] != date_to_check]
+            # تحويل التاريخ مرة أخرى إلى string
+            df['date'] = df['date'].apply(lambda x: x.strftime('%Y-%m-%d') if pd.notna(x) else None)
+        
+        # إضافة السطر الجديد إلى DataFrame
+        new_df = pd.DataFrame([new_row])
+        df = pd.concat([df, new_df], ignore_index=True)
+        
+        # ترتيب البيانات حسب التاريخ (تنازلي - من الأحدث إلى الأقدم) ثم حفظها
+        if 'date' in df.columns:
+            # إنشاء عمود مؤقت للترتيب
+            df['date_datetime'] = pd.to_datetime(df['date'], format='%Y-%m-%d', errors='coerce')
+            
+            # فصل البيانات الصالحة عن غير الصالحة
+            df_valid = df[df['date_datetime'].notna()].copy()
+            df_invalid = df[df['date_datetime'].isna()].copy()
+            
+            # ترتيب البيانات الصالحة حسب التاريخ (تنازلي - من الأحدث إلى الأقدم)
+            if not df_valid.empty:
+                df_valid = df_valid.sort_values('date_datetime', ascending=False, na_position='last', kind='mergesort')
+                df_valid = df_valid.reset_index(drop=True)
+                # تحويل التاريخ إلى string بعد الترتيب
+                df_valid['date'] = df_valid['date_datetime'].apply(lambda x: x.strftime('%Y-%m-%d') if pd.notna(x) else None)
+            
+            # دمج البيانات الصالحة وغير الصالحة (الصالحة أولاً - مرتبة تنازلياً)
+            if not df_invalid.empty:
+                df_invalid = df_invalid.reset_index(drop=True)
+                df = pd.concat([df_valid, df_invalid], ignore_index=True)
+            else:
+                df = df_valid
+            
+            # إزالة العمود المؤقت
+            if 'date_datetime' in df.columns:
+                df = df.drop(columns=['date_datetime'])
+        
+        # تنظيف البيانات قبل الحفظ (إزالة المكررات بناءً على التاريخ فقط)
+        if 'date' in df.columns:
+            df = df.drop_duplicates(subset=['date'], keep='last')
+        # إزالة الصفوف التي لا تحتوي على تاريخ فقط (وليس جميع الأعمدة)
+        if 'date' in df.columns:
+            df = df[df['date'].notna()]
+        df = df.reset_index(drop=True)
+        
+        # حفظ البيانات المرتبة مرة أخرى في قاعدة البيانات
+        df.to_sql('copper_data', conn, if_exists='replace', index=False)
+        
+        conn.commit()
+        conn.close()
+        print(f"تم حفظ التوقع في جدول copper_data: {date_str} - السعر المتوقع: {predicted_price}")
+    except Exception as e:
+        print(f"خطأ في حفظ التوقع في copper_data: {e}")
+        import traceback
+        traceback.print_exc()
+
 
 # ---------------------------------------------------------
 # دالة لتحديث قاعدة البيانات تلقائياً
@@ -306,13 +411,33 @@ def dashboard_data():
     df = load_data_from_db()
     df = clean_dataframe(df)  # تنظيف البيانات
 
-    # آخر 60 يوم
-    if 'date' in df.columns:
-        history_dates = df['date'].tail(60).tolist()
-    else:
-        history_dates = list(range(len(df.tail(60))))
+    # ترتيب البيانات حسب التاريخ (تنازلي - من الأحدث إلى الأقدم) للتأكد
+    if 'date' in df.columns and not df.empty:
+        df['date_datetime'] = pd.to_datetime(df['date'], errors='coerce', infer_datetime_format=True)
+        df_valid = df[df['date_datetime'].notna()].copy()
+        df_invalid = df[df['date_datetime'].isna()].copy()
+        
+        if not df_valid.empty:
+            df_valid = df_valid.sort_values('date_datetime', ascending=False, na_position='last', kind='mergesort')
+            df_valid = df_valid.reset_index(drop=True)
+            df_valid['date'] = df_valid['date_datetime'].apply(lambda x: x.strftime('%Y-%m-%d') if pd.notna(x) else None)
+        
+        if not df_invalid.empty:
+            df_invalid = df_invalid.reset_index(drop=True)
+            df = pd.concat([df_valid, df_invalid], ignore_index=True)
+        else:
+            df = df_valid
+        
+        if 'date_datetime' in df.columns:
+            df = df.drop(columns=['date_datetime'])
 
-    history_prices = df['copper_price'].tail(60).tolist()
+    # آخر 60 يوم (أول 60 سطر في البيانات المرتبة تنازلياً)
+    if 'date' in df.columns:
+        history_dates = df['date'].head(60).tolist()
+    else:
+        history_dates = list(range(len(df.head(60))))
+
+    history_prices = df['copper_price'].head(60).tolist()
 
     oil_price = get_brent_price()
     usd_index = get_dxy_value()
@@ -324,11 +449,11 @@ def dashboard_data():
         print("Error getting news sentiment in dashboard_data:", e)
         sentiment = (oil_price / 100) - (usd_index / 200)
 
-    # الحصول على آخر سعر نحاس من البيانات
-    last_copper_price = df['copper_price'].iloc[-1] if len(df) > 0 else 10000.0
+    # الحصول على آخر سعر نحاس من البيانات (أول سطر في البيانات المرتبة تنازلياً)
+    last_copper_price = df['copper_price'].iloc[0] if len(df) > 0 else 10000.0
     
     # إعداد الميزات مع إضافة copper_price
-    last_row_features = df[feature_columns[:-1]].tail(1).values[0].tolist()  # جميع الميزات ما عدا copper_price
+    last_row_features = df[feature_columns[:-1]].head(1).values[0].tolist()  # جميع الميزات ما عدا copper_price
     last_row_features.append(last_copper_price)  # إضافة copper_price
     last_scaled = scaler.transform([last_row_features])
     predicted_price = model.predict(last_scaled)[0]
@@ -392,18 +517,8 @@ def model_info_page():
 @app.route('/model-info-data')
 def model_info_data():
     try:
-        # استخدام البيانات المدمجة من predictions و copper_data
-        df = merge_predictions_with_copper_data()
+        df = load_data_from_db()
         df = clean_dataframe(df)  # تنظيف البيانات
-        
-        # ترتيب البيانات تنازلياً حسب التاريخ (من الأحدث إلى الأقدم)
-        # البيانات من merge_predictions_with_copper_data تكون مرتبة بالفعل
-        # لكن نتأكد من الترتيب مرة أخرى
-        if 'date' in df.columns:
-            df['date'] = pd.to_datetime(df['date'], errors='coerce', infer_datetime_format=True)
-            df = df.dropna(subset=['date'])
-            df = df.sort_values('date', ascending=False)  # تنازلي
-            df['date'] = df['date'].dt.strftime('%Y-%m-%d')
 
         if not set(feature_columns).issubset(df.columns) or 'Next_Day_Copper_Price' not in df.columns:
             return jsonify({'success': False, 'error': 'Required columns missing in dataset'}), 400
@@ -524,11 +639,11 @@ def auto_predict():
             'copper_price': full_features[7]
         }
 
-        # حفظ التوقع في قاعدة البيانات بتاريخ اليوم
-        now = datetime.now()
-        date_str = now.strftime('%Y-%m-%d')
+        # حفظ التوقع في قاعدة البيانات
         save_prediction_to_db(features_dict, prediction)
-        print(f"تم حفظ التوقع في قاعدة البيانات - التاريخ: {date_str}, السعر المتوقع: {prediction:.2f}")
+        
+        # حفظ التوقع في جدول copper_data مع ترتيب البيانات
+        save_prediction_to_copper_data(features_dict, prediction)
 
         # Return both top-level keys and a `features_used` object for the frontend
         return jsonify({
@@ -537,8 +652,7 @@ def auto_predict():
             'usd_index': features_dict['usd_index'],
             'market_sentiment': features_dict['market_sentiment'],
             'features_used': features_dict,
-            'datetime': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-            'date': date_str
+            'datetime': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         })
     except Exception as e:
         print('Error in auto_predict:', e)
@@ -566,6 +680,30 @@ def upload_csv():
         existing_df = load_data_from_db()
         combined = pd.concat([existing_df, new_df], ignore_index=True)
         combined = clean_dataframe(combined)
+
+        # ترتيب البيانات حسب التاريخ (تنازلي - من الأحدث إلى الأقدم)
+        if 'date' in combined.columns and not combined.empty:
+            combined['date_datetime'] = pd.to_datetime(combined['date'], errors='coerce', infer_datetime_format=True)
+            df_valid = combined[combined['date_datetime'].notna()].copy()
+            df_invalid = combined[combined['date_datetime'].isna()].copy()
+            
+            if not df_valid.empty:
+                df_valid = df_valid.sort_values('date_datetime', ascending=False, na_position='last', kind='mergesort')
+                df_valid = df_valid.reset_index(drop=True)
+                df_valid['date'] = df_valid['date_datetime'].apply(lambda x: x.strftime('%Y-%m-%d') if pd.notna(x) else None)
+            
+            if not df_invalid.empty:
+                df_invalid = df_invalid.reset_index(drop=True)
+                combined = pd.concat([df_valid, df_invalid], ignore_index=True)
+            else:
+                combined = df_valid
+            
+            if 'date_datetime' in combined.columns:
+                combined = combined.drop(columns=['date_datetime'])
+            
+            combined = combined.drop_duplicates(subset=['date'], keep='last')
+            combined = combined[combined['date'].notna()]
+            combined = combined.reset_index(drop=True)
 
         # save back to SQLite
         conn = sqlite3.connect(DB_FILE)
@@ -596,55 +734,149 @@ def database_view():
 
 @app.route('/database-data')
 def database_data():
-    """API لجلب البيانات من قاعدة البيانات مع pagination - يعرض جدول copper_data المدمج مع predictions"""
+    """API لجلب البيانات من قاعدة البيانات مع pagination"""
     try:
+        # إعادة ترتيب جميع البيانات في قاعدة البيانات عند كل تحديث
+        reorder_copper_data()
+        
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 50, type=int)
         search = request.args.get('search', '', type=str)
-        # إجبار الترتيب على التاريخ فقط وتنازلي دائماً
-        sort_column = 'date'
-        sort_order = 'desc'  # تنازلي دائماً (من الأحدث إلى الأقدم)
+        sort_column = request.args.get('sort', 'date', type=str)
+        sort_order = request.args.get('order', 'desc', type=str)  # افتراضياً من الأحدث إلى الأقدم
         
-        # دمج البيانات من predictions مع copper_data
-        merged_df = merge_predictions_with_copper_data()
+        conn = sqlite3.connect(DB_FILE)
         
-        # تطبيق البحث
+        # بناء استعلام البحث
+        where_clause = ""
+        params = []
         if search:
-            search_lower = search.lower()
-            mask = (
-                merged_df['date'].astype(str).str.contains(search_lower, case=False, na=False) |
-                merged_df['copper_price'].astype(str).str.contains(search_lower, case=False, na=False) |
-                merged_df['Next_Day_Copper_Price'].astype(str).str.contains(search_lower, case=False, na=False)
-            )
-            merged_df = merged_df[mask]
+            where_clause = "WHERE date LIKE ? OR copper_price LIKE ? OR Next_Day_Copper_Price LIKE ?"
+            search_pattern = f"%{search}%"
+            params = [search_pattern, search_pattern, search_pattern]
         
-        # تحويل date إلى datetime object للترتيب الصحيح
-        merged_df['date'] = pd.to_datetime(merged_df['date'], errors='coerce', infer_datetime_format=True)
+        # التحقق من أن عمود الترتيب موجود
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        cursor.execute("PRAGMA table_info(copper_data)")
+        columns = [row[1] for row in cursor.fetchall()]
         
-        # إزالة الصفوف التي فشل تحويل تاريخها
-        merged_df = merged_df.dropna(subset=['date'])
+        if sort_column not in columns:
+            sort_column = 'date'
         
-        # ترتيب البيانات تنازلياً حسب التاريخ (من الأحدث إلى الأقدم)
-        merged_df = merged_df.sort_values('date', ascending=False)  # تنازلي دائماً
+        # إذا كان الترتيب حسب التاريخ، نستخدم ترتيب تاريخي صحيح
+        if sort_column == 'date':
+            # جلب جميع البيانات أولاً للترتيب الصحيح حسب التاريخ
+            query_all = f"SELECT * FROM copper_data {where_clause}"
+            cursor.execute(query_all, params)
+            rows_all = cursor.fetchall()
+            column_names = [description[0] for description in cursor.description]
+            df = pd.DataFrame(rows_all, columns=column_names)
+            
+            # تحويل عمود date إلى datetime وترتيب البيانات
+            if 'date' in df.columns and not df.empty:
+                # إنشاء عمود مؤقت للترتيب
+                # استخدام infer_datetime_format للتعرف التلقائي على التنسيق
+                df['date_datetime'] = pd.to_datetime(df['date'], errors='coerce', infer_datetime_format=True)
+                
+                # إزالة الصفوف التي تحتوي على تواريخ غير صالحة قبل الترتيب
+                df_valid = df[df['date_datetime'].notna()].copy()
+                df_invalid = df[df['date_datetime'].isna()].copy()
+                
+                # ترتيب البيانات الصالحة حسب التاريخ (سنة، شهر، يوم)
+                if not df_valid.empty:
+                    ascending_order = (sort_order.lower() == 'asc')
+                    # ترتيب حسب التاريخ مع إعادة ضبط الفهرس
+                    # استخدام mergesort للترتيب المستقر
+                    df_valid = df_valid.sort_values('date_datetime', ascending=ascending_order, na_position='last', kind='mergesort')
+                    df_valid = df_valid.reset_index(drop=True)
+                    # تحويل التاريخ إلى string بتنسيق ISO (YYYY-MM-DD) للبيانات الصالحة
+                    df_valid['date'] = df_valid['date_datetime'].apply(lambda x: x.strftime('%Y-%m-%d') if pd.notna(x) else None)
+                    
+                    # طباعة أول وآخر تاريخ للتحقق (للتطوير فقط)
+                    if len(df_valid) > 0:
+                        print(f"[database_data] الترتيب: {'تصاعدي' if ascending_order else 'تنازلي'}, أول تاريخ: {df_valid['date'].iloc[0]}, آخر تاريخ: {df_valid['date'].iloc[-1]}, عدد الصفوف: {len(df_valid)}")
+                
+                # للبيانات غير الصالحة، نحتفظ بالتاريخ الأصلي كما هو
+                if not df_invalid.empty:
+                    df_invalid = df_invalid.reset_index(drop=True)
+                    # التاريخ الأصلي موجود بالفعل في عمود 'date'، لا نحتاج لتغييره
+                
+                # دمج البيانات الصالحة وغير الصالحة
+                # عند الترتيب التصاعدي: البيانات الصالحة أولاً (مرتبة تصاعدياً)، ثم البيانات غير الصالحة
+                # عند الترتيب التنازلي: البيانات الصالحة أولاً (مرتبة تنازلياً)، ثم البيانات غير الصالحة
+                if not df_invalid.empty:
+                    if ascending_order:
+                        # عند الترتيب التصاعدي، البيانات غير الصالحة في النهاية
+                        df = pd.concat([df_valid, df_invalid], ignore_index=True)
+                    else:
+                        # عند الترتيب التنازلي، البيانات غير الصالحة في النهاية أيضاً
+                        df = pd.concat([df_valid, df_invalid], ignore_index=True)
+                else:
+                    df = df_valid
+                
+                # إزالة العمود المؤقت
+                if 'date_datetime' in df.columns:
+                    df = df.drop(columns=['date_datetime'])
+            
+            # حساب العدد الإجمالي
+            total = len(df)
+            
+            # تطبيق pagination
+            offset = (page - 1) * per_page
+            df = df.iloc[offset:offset + per_page]
+        else:
+            # للترتيب حسب أعمدة أخرى، نستخدم SQL
+            order_by = f"ORDER BY {sort_column} {sort_order.upper()}"
+            
+            # حساب العدد الإجمالي
+            count_query = f"SELECT COUNT(*) as total FROM copper_data {where_clause}"
+            cursor.execute(count_query, params)
+            total = cursor.fetchone()[0]
+            
+            # جلب البيانات مع pagination
+            offset = (page - 1) * per_page
+            query = f"SELECT * FROM copper_data {where_clause} {order_by} LIMIT ? OFFSET ?"
+            params_with_limit = params + [per_page, offset]
+            
+            cursor.execute(query, params_with_limit)
+            rows = cursor.fetchall()
+            column_names = [description[0] for description in cursor.description]
+            df = pd.DataFrame(rows, columns=column_names)
+            
+            # تحويل عمود date إلى كائن date
+            if 'date' in df.columns and not df.empty:
+                df['date'] = pd.to_datetime(df['date'], errors='coerce')
+                df['date'] = df['date'].apply(lambda x: x.strftime('%Y-%m-%d') if pd.notna(x) else None)
         
-        # تحويل date مرة أخرى إلى string بتنسيق موحد (YYYY-MM-DD) للعرض
-        merged_df['date'] = merged_df['date'].dt.strftime('%Y-%m-%d')
-        
-        # حساب العدد الإجمالي
-        total = len(merged_df)
-        
-        # تطبيق pagination
-        offset = (page - 1) * per_page
-        paginated_df = merged_df.iloc[offset:offset + per_page]
+        conn.close()
         
         # تحويل البيانات إلى قائمة
-        data = paginated_df.to_dict('records')
+        data = df.to_dict('records')
         
-        # تنسيق الأرقام
+        # تنسيق الأرقام وتنظيف القيم NaN
         for row in data:
             for key, value in row.items():
-                if isinstance(value, (int, float)) and key != 'date' and not pd.isna(value):
-                    row[key] = round(float(value), 2)
+                if key == 'date':
+                    # التأكد من أن التاريخ ليس NaN أو None
+                    if value is None:
+                        row[key] = None
+                    elif pd.isna(value):
+                        row[key] = None
+                    elif isinstance(value, str):
+                        # إذا كان التاريخ string، نحتفظ به كما هو (حتى لو كان فارغاً)
+                        if value.strip() == '' or value == 'NaT' or value == 'nan':
+                            row[key] = None
+                        else:
+                            row[key] = value
+                    else:
+                        # إذا كان التاريخ نوع آخر، نحاول تحويله إلى string
+                        row[key] = str(value) if value is not None else None
+                elif isinstance(value, (int, float)) and key != 'date':
+                    if pd.isna(value):
+                        row[key] = None
+                    else:
+                        row[key] = round(float(value), 2) if value is not None else None
                 elif pd.isna(value):
                     row[key] = None
         
@@ -672,8 +904,8 @@ def predictions_data():
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 50, type=int)
         search = request.args.get('search', '', type=str)
-        sort_column = request.args.get('sort', 'datetime', type=str)
-        sort_order = request.args.get('order', 'desc', type=str)
+        sort_column = request.args.get('sort', 'date', type=str)
+        sort_order = request.args.get('order', 'desc', type=str)  # افتراضياً من الأحدث إلى الأقدم
         
         conn = sqlite3.connect(DB_FILE)
         conn.row_factory = sqlite3.Row
@@ -692,34 +924,97 @@ def predictions_data():
         columns = [row[1] for row in cursor.fetchall()]
         
         if sort_column not in columns:
-            sort_column = 'datetime'
+            sort_column = 'date'
         
-        order_by = f"ORDER BY {sort_column} {sort_order.upper()}"
+        # إذا كان الترتيب حسب التاريخ، نستخدم ترتيب تاريخي صحيح
+        if sort_column == 'date':
+            # جلب جميع البيانات أولاً للترتيب الصحيح حسب التاريخ
+            query_all = f"SELECT * FROM predictions {where_clause}"
+            cursor.execute(query_all, params)
+            rows_all = cursor.fetchall()
+            column_names = [description[0] for description in cursor.description]
+            df = pd.DataFrame(rows_all, columns=column_names)
+            
+            # تحويل عمود date إلى datetime وترتيب البيانات
+            if 'date' in df.columns and not df.empty:
+                # تحويل التاريخ إلى datetime مع معالجة الأخطاء (محاولة تنسيقات متعددة)
+                df['date'] = pd.to_datetime(df['date'], format='%Y-%m-%d', errors='coerce')
+                # إذا فشل التنسيق الأول، جرب تنسيقات أخرى
+                if df['date'].isna().any():
+                    df['date'] = pd.to_datetime(df['date'], errors='coerce')
+                
+                # إزالة الصفوف التي تحتوي على تواريخ غير صالحة قبل الترتيب
+                df_valid = df[df['date'].notna()].copy()
+                df_invalid = df[df['date'].isna()].copy()
+                
+                # ترتيب البيانات الصالحة حسب التاريخ (سنة، شهر، يوم)
+                if not df_valid.empty:
+                    ascending_order = (sort_order.lower() == 'asc')
+                    # ترتيب حسب التاريخ مع إعادة ضبط الفهرس
+                    df_valid = df_valid.sort_values('date', ascending=ascending_order, na_position='last', kind='mergesort')
+                    df_valid = df_valid.reset_index(drop=True)
+                
+                # دمج البيانات الصالحة وغير الصالحة (الصالحة أولاً)
+                if not df_invalid.empty:
+                    df_invalid = df_invalid.reset_index(drop=True)
+                    df = pd.concat([df_valid, df_invalid], ignore_index=True)
+                else:
+                    df = df_valid
+                
+                # تحويل التاريخ إلى string بتنسيق ISO (YYYY-MM-DD)
+                df['date'] = df['date'].apply(lambda x: x.strftime('%Y-%m-%d') if pd.notna(x) else None)
+            
+            # حساب العدد الإجمالي
+            total = len(df)
+            
+            # تطبيق pagination
+            offset = (page - 1) * per_page
+            df = df.iloc[offset:offset + per_page]
+        else:
+            # للترتيب حسب أعمدة أخرى، نستخدم SQL
+            order_by = f"ORDER BY {sort_column} {sort_order.upper()}"
+            
+            # حساب العدد الإجمالي
+            count_query = f"SELECT COUNT(*) as total FROM predictions {where_clause}"
+            cursor.execute(count_query, params)
+            total = cursor.fetchone()[0]
+            
+            # جلب البيانات مع pagination
+            offset = (page - 1) * per_page
+            query = f"SELECT * FROM predictions {where_clause} {order_by} LIMIT ? OFFSET ?"
+            params_with_limit = params + [per_page, offset]
+            
+            cursor.execute(query, params_with_limit)
+            rows = cursor.fetchall()
+            column_names = [description[0] for description in cursor.description]
+            df = pd.DataFrame(rows, columns=column_names)
+            
+            # تحويل عمود date إلى كائن date
+            if 'date' in df.columns and not df.empty:
+                df['date'] = pd.to_datetime(df['date'], errors='coerce')
+                df['date'] = df['date'].apply(lambda x: x.strftime('%Y-%m-%d') if pd.notna(x) else None)
         
-        # حساب العدد الإجمالي
-        count_query = f"SELECT COUNT(*) as total FROM predictions {where_clause}"
-        cursor.execute(count_query, params)
-        total = cursor.fetchone()[0]
-        
-        # جلب البيانات مع pagination
-        offset = (page - 1) * per_page
-        query = f"SELECT * FROM predictions {where_clause} {order_by} LIMIT ? OFFSET ?"
-        params_with_limit = params + [per_page, offset]
-        
-        cursor.execute(query, params_with_limit)
-        rows = cursor.fetchall()
-        column_names = [description[0] for description in cursor.description]
-        df = pd.DataFrame(rows, columns=column_names)
         conn.close()
         
         # تحويل البيانات إلى قائمة
         data = df.to_dict('records')
         
-        # تنسيق الأرقام
+        # تنسيق الأرقام وتنظيف القيم NaN
         for row in data:
             for key, value in row.items():
-                if isinstance(value, (int, float)) and key not in ['id', 'datetime', 'date', 'time', 'created_at']:
-                    row[key] = round(float(value), 2) if value is not None else None
+                if key == 'date':
+                    # التأكد من أن التاريخ ليس NaN
+                    if pd.isna(value) or value == 'NaT' or value == 'nan' or value is None:
+                        row[key] = None
+                    elif isinstance(value, str) and (value == 'NaT' or value == 'nan'):
+                        row[key] = None
+                elif isinstance(value, (int, float)) and key not in ['id', 'datetime', 'date', 'time', 'created_at']:
+                    if pd.isna(value):
+                        row[key] = None
+                    else:
+                        row[key] = round(float(value), 2) if value is not None else None
+                elif pd.isna(value):
+                    row[key] = None
         
         return jsonify({
             'success': True,
@@ -733,6 +1028,8 @@ def predictions_data():
         })
     except Exception as e:
         print('Error in predictions_data:', e)
+        import traceback
+        traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
 
 

@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>التنبؤ التلقائي - توقعات النحاس</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <link rel="stylesheet" href="/static/css/style.css">
     <style>
         .auto-update-info {
@@ -120,26 +119,26 @@
     <div class="main-container">
         <!-- Page Header -->
         <div class="page-header fade-in">
-            <h1><i class="bi bi-robot" style="color: #667eea; margin-left: 10px;"></i> التنبؤ التلقائي</h1>
+            <h1>🤖 التنبؤ التلقائي</h1>
             <p class="page-subtitle">توقعات النحاس بناءً على بيانات السوق الحقيقية المحدثة تلقائياً</p>
         </div>
 
         <!-- معلومات التحديث التلقائي -->
         <div class="auto-update-info fade-in">
             <div style="text-align: center; margin-bottom: 1rem;">
-                <p style="font-size: 1.1rem; margin: 0;"><i class="bi bi-clock" style="margin-left: 5px;"></i> التحديث التلقائي خلال</p>
+                <p style="font-size: 1.1rem; margin: 0;">⏱️ التحديث التلقائي خلال</p>
                 <div class="timer-value" id="timerDisplay">15:00</div>
                 <p style="font-size: 0.9rem; margin: 0.5rem 0 0 0;">دقيقة:ثانية</p>
             </div>
             <p style="text-align: center; margin: 0; font-size: 0.95rem; opacity: 0.9;">
-                <i class="bi bi-broadcast" style="margin-left: 5px;"></i> يتم جلب البيانات الحقيقية تلقائياً من الأسواق العالمية
+                📡 يتم جلب البيانات الحقيقية تلقائياً من الأسواق العالمية
             </p>
         </div>
 
         <!-- خطوات جلب البيانات -->
         <div class="card fade-in mb-4">
             <div class="card-header">
-                <h5 class="mb-0"><i class="bi bi-list-check" style="color: #667eea; margin-left: 5px;"></i> خطوات جلب البيانات</h5>
+                <h5 class="mb-0">📊 خطوات جلب البيانات</h5>
             </div>
             <div class="card-body">
                 <div id="stepsContainer">
@@ -151,7 +150,7 @@
         <!-- النتيجة النهائية -->
         <div class="card fade-in">
             <div class="card-header">
-                <h5 class="mb-0"><i class="bi bi-check-circle" style="color: #667eea; margin-left: 5px;"></i> النتيجة النهائية</h5>
+                <h5 class="mb-0">✅ النتيجة النهائية</h5>
             </div>
             <div class="card-body">
                 <div id="loading" class="loading">
@@ -166,33 +165,33 @@
 
                     <div class="data-row">
                         <div class="result-item">
-                            <div class="result-label"><i class="bi bi-graph-up-arrow" style="color: #667eea; margin-left: 5px;"></i> السعر المتوقع للنحاس</div>
+                            <div class="result-label">🔮 السعر المتوقع للنحاس</div>
                             <div class="result-value" id="predictedPrice">-</div>
                         </div>
 
                         <div class="result-item">
-                            <div class="result-label"><i class="bi bi-droplet-fill" style="color: #667eea; margin-left: 5px;"></i> سعر النفط Brent</div>
+                            <div class="result-label">🛢️ سعر النفط Brent</div>
                             <div class="result-value" id="oilPrice">-</div>
                         </div>
 
                         <div class="result-item">
-                            <div class="result-label"><i class="bi bi-currency-dollar" style="color: #667eea; margin-left: 5px;"></i> مؤشر الدولار DXY</div>
+                            <div class="result-label">💵 مؤشر الدولار DXY</div>
                             <div class="result-value" id="usdIndex">-</div>
                         </div>
 
                         <div class="result-item">
-                            <div class="result-label"><i class="bi bi-bar-chart-line" style="color: #667eea; margin-left: 5px;"></i> معنويات السوق</div>
+                            <div class="result-label">📈 معنويات السوق</div>
                             <div class="result-value" id="sentiment">-</div>
                         </div>
                     </div>
 
                     <div class="info-box mt-3">
-                        <strong><i class="bi bi-info-circle" style="color: #667eea; margin-left: 5px;"></i> ملخص المتغيرات المستخدمة:</strong>
+                        <strong>ℹ️ ملخص المتغيرات المستخدمة:</strong>
                         <div id="featuresInfo" style="margin-top: 1rem; font-size: 0.9rem;"></div>
                     </div>
 
                     <button class="refresh-btn" onclick="loadDataNow()" style="width: 100%; margin-top: 1.5rem; text-align: center; justify-content: center;">
-                        <i class="bi bi-arrow-clockwise" style="margin-left: 5px;"></i> تحديث فوري
+                        🔄 تحديث فوري
                     </button>
                 </div>
             </div>
@@ -204,11 +203,11 @@
         let remainingSeconds = 900; // 15 minutes = 900 seconds
 
         const steps = [
-            { id: 'oil', label: 'جلب سعر النفط Brent', icon: '<i class="bi bi-droplet-fill" style="color: #667eea;"></i>' },
-            { id: 'dxy', label: 'جلب مؤشر الدولار DXY', icon: '<i class="bi bi-currency-dollar" style="color: #667eea;"></i>' },
-            { id: 'sentiment', label: 'جلب معنويات السوق', icon: '<i class="bi bi-newspaper" style="color: #667eea;"></i>' },
-            { id: 'variables', label: 'تقدير بقية المتغيرات', icon: '<i class="bi bi-graph-up" style="color: #667eea;"></i>' },
-            { id: 'model', label: 'تشغيل النموذج والتنبؤ', icon: '<i class="bi bi-cpu" style="color: #667eea;"></i>' }
+            { id: 'oil', label: '🛢️ جلب سعر النفط Brent', icon: '⛽' },
+            { id: 'dxy', label: '💵 جلب مؤشر الدولار DXY', icon: '💱' },
+            { id: 'sentiment', label: '📰 جلب معنويات السوق', icon: '📡' },
+            { id: 'variables', label: '📊 تقدير بقية المتغيرات', icon: '📈' },
+            { id: 'model', label: '🧠 تشغيل النموذج والتنبؤ', icon: '⚙️' }
         ];
 
         function initializeSteps() {
@@ -234,16 +233,16 @@
             statusEl.classList.remove('loading', 'success', 'error');
 
             if (status === 'loading') {
-                statusEl.innerHTML = '<i class="bi bi-hourglass-split" style="margin-left: 5px;"></i> جاري التحميل...';
+                statusEl.textContent = '⏳ جاري التحميل...';
                 stepEl.classList.add('loading');
                 statusEl.classList.add('loading');
             } else if (status === 'success') {
-                statusEl.innerHTML = '<i class="bi bi-check-circle" style="margin-left: 5px;"></i> تم بنجاح';
+                statusEl.textContent = '✅ تم بنجاح';
                 stepEl.classList.add('success');
                 statusEl.classList.add('success');
                 if (value) valueEl.textContent = value;
             } else if (status === 'error') {
-                statusEl.innerHTML = '<i class="bi bi-x-circle" style="margin-left: 5px;"></i> خطأ';
+                statusEl.textContent = '❌ خطأ';
                 stepEl.classList.add('error');
                 statusEl.classList.add('error');
                 if (value) valueEl.textContent = value;
@@ -279,8 +278,7 @@
                 // خطوة 5: تشغيل النموذج
                 updateStepStatus('model', 'loading');
 
-                // الآن جلب كل شيء مرة واحدة - سيتم حفظ التوقع تلقائياً في قاعدة البيانات
-                console.log('جاري جلب البيانات وحفظ التوقع في قاعدة البيانات...');
+                // الآن جلب كل شيء مرة واحدة
                 const response = await fetch('/api_predict');
                 
                 if (!response.ok) {
@@ -288,41 +286,40 @@
                 }
 
                 const data = await response.json();
-                console.log('تم حفظ التوقع في قاعدة البيانات بتاريخ:', data.datetime);
 
                 if (!data.success && data.error) {
                     throw new Error(data.error);
                 }
 
                 // تحديث حالات الخطوات بناءً على البيانات
-                updateStepStatus('oil', 'success', `$${parseFloat(data.oil_price).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`);
-                updateStepStatus('dxy', 'success', parseFloat(data.usd_index).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}));
-                updateStepStatus('sentiment', 'success', `${(parseFloat(data.market_sentiment) * 100).toLocaleString('en-US', {minimumFractionDigits: 1, maximumFractionDigits: 1})}%`);
+                updateStepStatus('oil', 'success', `$${parseFloat(data.oil_price).toFixed(2)}`);
+                updateStepStatus('dxy', 'success', parseFloat(data.usd_index).toFixed(2));
+                updateStepStatus('sentiment', 'success', `${(parseFloat(data.market_sentiment) * 100).toFixed(1)}%`);
                 updateStepStatus('variables', 'success', 'تم التقدير');
                 updateStepStatus('model', 'success', 'اكتمل');
 
                 // عرض البيانات النهائية
                 document.getElementById('predictedPrice').textContent = 
-                    `$${parseFloat(data.predicted_copper_price).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+                    `$${parseFloat(data.predicted_copper_price).toFixed(2)}`;
                 
                 document.getElementById('oilPrice').textContent = 
-                    `$${parseFloat(data.oil_price).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+                    `$${parseFloat(data.oil_price).toFixed(2)}`;
                 
                 document.getElementById('usdIndex').textContent = 
-                    parseFloat(data.usd_index).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                    parseFloat(data.usd_index).toFixed(2);
                 
                 document.getElementById('sentiment').textContent = 
-                    `${(parseFloat(data.market_sentiment) * 100).toLocaleString('en-US', {minimumFractionDigits: 1, maximumFractionDigits: 1})}%`;
+                    `${(parseFloat(data.market_sentiment) * 100).toFixed(1)}%`;
 
                 // عرض المتغيرات المستخدمة
                 if (data.features_used) {
                     const featuresHTML = Object.entries(data.features_used)
-                        .map(([key, value]) => `<div><strong>${key}:</strong> ${parseFloat(value).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>`)
+                        .map(([key, value]) => `<div><strong>${key}:</strong> ${parseFloat(value).toFixed(2)}</div>`)
                         .join('');
                     document.getElementById('featuresInfo').innerHTML = featuresHTML;
                 }
 
-                errorMsg.innerHTML = '<div class="alert alert-success"><i class="bi bi-check-circle" style="margin-left: 5px;"></i> تم جلب البيانات بنجاح من الأسواق الحقيقية</div>';
+                errorMsg.innerHTML = '<div class="alert alert-success">✅ تم جلب البيانات بنجاح من الأسواق الحقيقية</div>';
                 
                 loadingDiv.style.display = 'none';
                 resultDiv.style.display = 'block';
@@ -331,7 +328,7 @@
                 console.error('خطأ:', error);
                 updateStepStatus('model', 'error', error.message);
                 
-                errorMsg.innerHTML = `<div class="alert alert-danger"><i class="bi bi-x-circle" style="margin-left: 5px;"></i> خطأ: ${error.message}</div>`;
+                errorMsg.innerHTML = `<div class="alert alert-danger">❌ خطأ: ${error.message}</div>`;
                 
                 document.getElementById('predictedPrice').textContent = 'خطأ';
                 document.getElementById('oilPrice').textContent = 'خطأ';

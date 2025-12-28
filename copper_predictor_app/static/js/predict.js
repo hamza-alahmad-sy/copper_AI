@@ -28,7 +28,7 @@ document.getElementById('predictionForm').addEventListener('submit', async funct
 
         // عرض السعر المتوقع
         document.getElementById('result').textContent =
-            `$${result.predicted_copper_price.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            `$${result.predicted_copper_price.toFixed(2)}`;
 
         // جلب معاملات النموذج من الخادم
         const coefficients = result.coefficients;  
@@ -42,8 +42,7 @@ document.getElementById('predictionForm').addEventListener('submit', async funct
             "الإنتاج الصناعي الصيني",
             "مؤشر تكاليف الطاقة",
             "معنويات السوق",
-            "مؤشر انقطاع الإمدادات",
-            "سعر النحاس الحالي"
+            "مؤشر انقطاع الإمدادات"
         ];
 
         const labelKeys = [
@@ -53,8 +52,7 @@ document.getElementById('predictionForm').addEventListener('submit', async funct
             "china_industry_output",
             "energy_cost_index",
             "market_sentiment",
-            "supply_disruption_index",
-            "copper_price"
+            "supply_disruption_index"
         ];
 
         // حساب التأثيرات ديناميكياً
@@ -71,8 +69,7 @@ document.getElementById('predictionForm').addEventListener('submit', async funct
             'rgba(75, 192, 192, 0.7)',    // فيروزي - الإنتاج الصيني
             'rgba(153, 102, 255, 0.7)',   // بنفسجي - الطاقة
             'rgba(255, 159, 64, 0.7)',    // برتقالي - المشاعر
-            'rgba(99, 255, 132, 0.7)',    // أخضر - انقطاع الإمدادات
-            'rgba(184, 134, 11, 0.7)'     // ذهبي - سعر النحاس الحالي
+            'rgba(99, 255, 132, 0.7)'     // أخضر - انقطاع الإمدادات
         ];
 
         const borderColors = colors.map(c => c.replace("0.7", "1"));

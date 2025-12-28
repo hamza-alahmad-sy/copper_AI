@@ -127,16 +127,16 @@
                 <table class="table table-striped table-hover" id="dataTable">
                     <thead>
                         <tr>
-                            <th>التاريخ <i class="bi bi-arrow-down" style="color: white; margin-right: 5px;"></i></th>
-                            <th>مؤشر الطلب العالمي</th>
-                            <th>سعر النفط</th>
-                            <th>مؤشر الدولار</th>
-                            <th>الإنتاج الصناعي الصيني</th>
-                            <th>مؤشر تكاليف الطاقة</th>
-                            <th>معنويات السوق</th>
-                            <th>مؤشر انقطاع الإمدادات</th>
-                            <th>سعر النحاس</th>
-                            <th>سعر النحاس (اليوم التالي)</th>
+                            <th onclick="sortTable('date')">التاريخ <span class="sort-icon">⇅</span></th>
+                            <th onclick="sortTable('global_demand_index')">مؤشر الطلب العالمي <span class="sort-icon">⇅</span></th>
+                            <th onclick="sortTable('oil_price')">سعر النفط <span class="sort-icon">⇅</span></th>
+                            <th onclick="sortTable('usd_index')">مؤشر الدولار <span class="sort-icon">⇅</span></th>
+                            <th onclick="sortTable('china_industry_output')">الإنتاج الصناعي الصيني <span class="sort-icon">⇅</span></th>
+                            <th onclick="sortTable('energy_cost_index')">مؤشر تكاليف الطاقة <span class="sort-icon">⇅</span></th>
+                            <th onclick="sortTable('market_sentiment')">معنويات السوق <span class="sort-icon">⇅</span></th>
+                            <th onclick="sortTable('supply_disruption_index')">مؤشر انقطاع الإمدادات <span class="sort-icon">⇅</span></th>
+                            <th onclick="sortTable('copper_price')">سعر النحاس <span class="sort-icon">⇅</span></th>
+                            <th onclick="sortTable('Next_Day_Copper_Price')">سعر النحاس (اليوم التالي) <span class="sort-icon">⇅</span></th>
                         </tr>
                     </thead>
                     <tbody id="tableBody">
@@ -160,7 +160,7 @@
         let currentPerPage = 50;
         let currentSearch = '';
         let currentSort = 'date';
-        let currentOrder = 'desc';  // تنازلي دائماً (من الأحدث إلى الأقدم)
+        let currentOrder = 'desc';  // تنازلي افتراضياً (من الأحدث إلى الأقدم)
 
         // تحميل البيانات عند تحميل الصفحة
         document.addEventListener('DOMContentLoaded', function() {
@@ -329,9 +329,14 @@
         }
 
         function sortTable(column) {
-            // الترتيب فقط على التاريخ وتنازلي دائماً
-            // لا يمكن تغيير الترتيب
-            return;
+            if (currentSort === column) {
+                currentOrder = currentOrder === 'asc' ? 'desc' : 'asc';
+            } else {
+                currentSort = column;
+                currentOrder = 'asc';
+            }
+            currentPage = 1;
+            loadData();
         }
 
         function formatNumber(value) {

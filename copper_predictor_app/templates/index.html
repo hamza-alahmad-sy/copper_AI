@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>لوحة التحكم - توقعات النحاس</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <link rel="stylesheet" href="/static/css/style.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
@@ -14,14 +13,14 @@
     <div class="main-container">
         <!-- Page Header -->
         <div class="page-header fade-in">
-            <h1><i class="bi bi-speedometer2" style="color: #667eea; margin-left: 10px;"></i> لوحة التحكم - توقعات النحاس</h1>
+            <h1>📈 لوحة التحكم - توقعات النحاس</h1>
             <p class="page-subtitle">مراقبة أسعار النحاس ومؤشرات السوق الحقيقية</p>
         </div>
 
         <!-- السعر المتوقع -->
         <div class="card mb-4 fade-in">
             <div class="card-header">
-                <h5 class="mb-0"><i class="bi bi-graph-up-arrow" style="color: #667eea; margin-left: 5px;"></i> السعر المتوقع للنحاس</h5>
+                <h5 class="mb-0">🔮 السعر المتوقع للنحاس</h5>
             </div>
             <div class="card-body text-center">
                 <p class="result-value" id="tomorrowPrediction">--</p>
@@ -32,7 +31,7 @@
         <!-- الرسم البياني التاريخي -->
         <div class="card mb-4 fade-in">
             <div class="card-header">
-                <h5 class="mb-0"><i class="bi bi-graph-down" style="color: #667eea; margin-left: 5px;"></i> تاريخ أسعار النحاس (آخر 60 يوم)</h5>
+                <h5 class="mb-0">📉 تاريخ أسعار النحاس (آخر 60 يوم)</h5>
             </div>
             <div class="card-body">
                 <div class="chart-wrapper">
@@ -44,17 +43,17 @@
         <!-- مؤشرات السوق -->
         <div class="grid-3-cols fade-in">
             <div class="stat-card primary">
-                <div class="stat-label"><i class="bi bi-droplet-fill" style="color: #667eea; margin-left: 5px;"></i> سعر النفط Brent</div>
+                <div class="stat-label">🛢️ سعر النفط Brent</div>
                 <div class="stat-value" id="oilPrice">--</div>
                 <small class="text-muted">برميل واحد (USD)</small>
             </div>
             <div class="stat-card success">
-                <div class="stat-label"><i class="bi bi-currency-dollar" style="color: #667eea; margin-left: 5px;"></i> مؤشر الدولار DXY</div>
+                <div class="stat-label">💵 مؤشر الدولار DXY</div>
                 <div class="stat-value" id="usdIndex">--</div>
                 <small class="text-muted">مؤشر قوة الدولار</small>
             </div>
             <div class="stat-card warning">
-                <div class="stat-label"><i class="bi bi-bar-chart-line" style="color: #667eea; margin-left: 5px;"></i> معنويات السوق</div>
+                <div class="stat-label">📊 معنويات السوق</div>
                 <div class="stat-value" id="marketSentiment">--</div>
                 <small class="text-muted">مؤشر المشاعر (%)</small>
             </div>
@@ -63,7 +62,7 @@
         <!-- زر التحديث -->
         <div class="text-center mt-4 fade-in">
             <button class="refresh-btn" onclick="loadDashboardData()">
-                <i class="bi bi-arrow-clockwise" style="margin-left: 5px;"></i> تحديث البيانات
+                🔄 تحديث البيانات
             </button>
         </div>
     </div>
@@ -80,16 +79,16 @@
                 // عرض السعر المتوقع
                 const tp = document.getElementById('tomorrowPrediction');
                 if (tp && typeof data.predicted_price === 'number') {
-                    tp.textContent = `$${data.predicted_price.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+                    tp.textContent = `$${data.predicted_price.toFixed(2)}`;
                 }
 
                 // عرض مؤشرات السوق
                 const oilEl = document.getElementById('oilPrice');
                 const usdEl = document.getElementById('usdIndex');
                 const sentEl = document.getElementById('marketSentiment');
-                if (oilEl && typeof data.oil_price === 'number') oilEl.textContent = `$${data.oil_price.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-                if (usdEl && typeof data.usd_index === 'number') usdEl.textContent = data.usd_index.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-                if (sentEl && typeof data.market_sentiment === 'number') sentEl.textContent = (data.market_sentiment * 100).toLocaleString('en-US', {minimumFractionDigits: 1, maximumFractionDigits: 1}) + '%';
+                if (oilEl && typeof data.oil_price === 'number') oilEl.textContent = `$${data.oil_price.toFixed(2)}`;
+                if (usdEl && typeof data.usd_index === 'number') usdEl.textContent = data.usd_index.toFixed(2);
+                if (sentEl && typeof data.market_sentiment === 'number') sentEl.textContent = (data.market_sentiment * 100).toFixed(1) + '%';
 
                 // رسم الرسم البياني
                 drawChart(data);
@@ -150,7 +149,7 @@
                             beginAtZero: false,
                             ticks: {
                                 callback: function(value) {
-                                    return '$' + value.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                                    return '$' + value.toFixed(2);
                                 }
                             }
                         }
