@@ -7,17 +7,23 @@ from sklearn.linear_model import LinearRegression
 from sklearn.metrics import r2_score, mean_absolute_error, mean_squared_error 
 from sklearn.preprocessing import StandardScaler
 import pickle
-#load the dataset
-DATA_FILE = Path(__file__).resolve().parent.parent / 'data' / 'copper_prediction_dataset_1000.csv'
-Model_FILE = Path(__file__).resolve().parent.parent / 'model' / 'copper_model.pkl'
-df = pd.read_csv(DATA_FILE)
+import sqlite3
 
-#the features variable
+#load the dataset from SQLite
+DB_FILE = Path(__file__).resolve().parent.parent / 'data' / 'copper_data.db'
+Model_FILE = Path(__file__).resolve().parent.parent / 'model' / 'copper_model.pkl'
+
+# Connect to SQLite database
+conn = sqlite3.connect(DB_FILE)
+df = pd.read_sql_query("SELECT * FROM copper_data", conn)
+conn.close()
+
+#the features variable - now includes copper_price
 feature_columns = ['global_demand_index','oil_price','usd_index',
                    'china_industry_output','energy_cost_index',
-                   'market_sentiment','supply_disruption_index']
+                   'market_sentiment','supply_disruption_index','copper_price']
 x=df[feature_columns]
-y=df['copper_price']   #the target variable
+y=df['Next_Day_Copper_Price']   #the target variable is now Next_Day_Copper_Price
 
 #split the dataset into training and testing sets
 x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=42)

@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>عرض قاعدة البيانات - توقعات النحاس</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+    <style>
+        .data-table-wrapper {
+            overflow-x: auto;
+        }
+        .table-container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 20px;
+        }
+        .stats-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .stats-card h5 {
+            color: white;
+            margin-bottom: 10px;
+        }
+        .stats-value {
+            font-size: 2rem;
+            font-weight: bold;
+        }
+        .search-box {
+            margin-bottom: 20px;
+        }
+        .loading-spinner {
+            text-align: center;
+            padding: 40px;
+        }
+        .table th {
+            background-color: #667eea;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            user-select: none;
+        }
+        .table th:hover {
+            background-color: #5568d3;
+        }
+        .sort-icon {
+            margin-right: 5px;
+        }
+    </style>
+</head>
+<body>
+    {% include 'navbar.html' %}
+    <div class="main-container">
+        <!-- Page Header -->
+        <div class="page-header fade-in">
+            <h1><i class="bi bi-database" style="color: #667eea; margin-left: 10px;"></i> عرض قاعدة البيانات</h1>
+            <p class="page-subtitle">استعرض جميع البيانات المخزنة في قاعدة البيانات</p>
+        </div>
+
+        <!-- Statistics Cards -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="stats-card">
+                    <h5><i class="bi bi-bar-chart-fill" style="margin-left: 5px;"></i> إجمالي السجلات</h5>
+                    <div class="stats-value" id="totalRecords">--</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stats-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                    <h5><i class="bi bi-currency-dollar" style="margin-left: 5px;"></i> متوسط سعر النحاس</h5>
+                    <div class="stats-value" id="avgCopperPrice">--</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stats-card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+                    <h5><i class="bi bi-calendar-event" style="margin-left: 5px;"></i> آخر تحديث</h5>
+                    <div class="stats-value" style="font-size: 1.2rem;" id="lastDate">--</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stats-card" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
+                    <h5><i class="bi bi-file-earmark-text" style="margin-left: 5px;"></i> الصفحة الحالية</h5>
+                    <div class="stats-value" id="currentPage">--</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Search and Controls -->
+        <div class="table-container fade-in">
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <div class="input-group search-box">
+                        <span class="input-group-text"><i class="bi bi-search" style="color: #667eea;"></i></span>
+                        <input type="text" class="form-control" id="searchInput" placeholder="ابحث في البيانات (تاريخ، سعر...)">
+                        <button class="btn btn-primary" onclick="searchData()"><i class="bi bi-search" style="margin-left: 5px;"></i> بحث</button>
+                        <button class="btn btn-secondary" onclick="clearSearch()"><i class="bi bi-x-circle" style="margin-left: 5px;"></i> مسح</button>
+                    </div>
+                </div>
+                <div class="col-md-6 text-end">
+                    <label class="me-2">عدد السجلات لكل صفحة:</label>
+                    <select class="form-select d-inline-block" style="width: auto;" id="perPageSelect" onchange="changePerPage()">
+                        <option value="25">25</option>
+                        <option value="50" selected>50</option>
+                        <option value="100">100</option>
+                        <option value="200">200</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Loading Spinner -->
+            <div class="loading-spinner" id="loadingSpinner">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">جاري التحميل...</span>
+                </div>
+                <p class="mt-2">جاري تحميل البيانات...</p>
+            </div>
+
+            <!-- Data Table -->
+            <div class="data-table-wrapper" id="tableWrapper" style="display: none;">
+                <table class="table table-striped table-hover" id="dataTable">
+                    <thead>
+                        <tr>
+                            <th>التاريخ <i class="bi bi-arrow-down" style="color: white; margin-right: 5px;"></i></th>
+                            <th>مؤشر الطلب العالمي</th>
+                            <th>سعر النفط</th>
+                            <th>مؤشر الدولار</th>
+                            <th>الإنتاج الصناعي الصيني</th>
+                            <th>مؤشر تكاليف الطاقة</th>
+                            <th>معنويات السوق</th>
+                            <th>مؤشر انقطاع الإمدادات</th>
+                            <th>سعر النحاس</th>
+                            <th>سعر النحاس (اليوم التالي)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                        <!-- البيانات سيتم إضافتها ديناميكياً -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            <nav aria-label="Page navigation" id="paginationNav" style="display: none;">
+                <ul class="pagination justify-content-center" id="pagination">
+                    <!-- Pagination سيتم إضافتها ديناميكياً -->
+                </ul>
+            </nav>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let currentPage = 1;
+        let currentPerPage = 50;
+        let currentSearch = '';
+        let currentSort = 'date';
+        let currentOrder = 'desc';  // تنازلي دائماً (من الأحدث إلى الأقدم)
+
+        // تحميل البيانات عند تحميل الصفحة
+        document.addEventListener('DOMContentLoaded', function() {
+            loadData();
+            
+            // إضافة event listener للبحث عند الضغط على Enter
+            document.getElementById('searchInput').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    searchData();
+                }
+            });
+        });
+
+        async function loadData() {
+            try {
+                document.getElementById('loadingSpinner').style.display = 'block';
+                document.getElementById('tableWrapper').style.display = 'none';
+                document.getElementById('paginationNav').style.display = 'none';
+
+                const url = `/database-data?page=${currentPage}&per_page=${currentPerPage}&search=${encodeURIComponent(currentSearch)}&sort=${currentSort}&order=${currentOrder}`;
+                const response = await fetch(url);
+                const result = await response.json();
+
+                if (result.success) {
+                    displayData(result.data);
+                    displayPagination(result.pagination);
+                    updateStats(result.data, result.pagination);
+                } else {
+                    alert('خطأ في تحميل البيانات: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Error loading data:', error);
+                alert('حدث خطأ أثناء تحميل البيانات');
+            } finally {
+                document.getElementById('loadingSpinner').style.display = 'none';
+                document.getElementById('tableWrapper').style.display = 'block';
+                document.getElementById('paginationNav').style.display = 'block';
+            }
+        }
+
+        function displayData(data) {
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = '';
+
+            if (data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="10" class="text-center">لا توجد بيانات</td></tr>';
+                return;
+            }
+
+            data.forEach(row => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${row.date || '--'}</td>
+                    <td>${formatNumber(row.global_demand_index)}</td>
+                    <td>${formatNumber(row.oil_price)}</td>
+                    <td>${formatNumber(row.usd_index)}</td>
+                    <td>${formatNumber(row.china_industry_output)}</td>
+                    <td>${formatNumber(row.energy_cost_index)}</td>
+                    <td>${formatNumber(row.market_sentiment)}</td>
+                    <td>${formatNumber(row.supply_disruption_index)}</td>
+                    <td><strong>${formatNumber(row.copper_price)}</strong></td>
+                    <td><strong style="color: #667eea;">${formatNumber(row.Next_Day_Copper_Price)}</strong></td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function displayPagination(pagination) {
+            const paginationNav = document.getElementById('pagination');
+            paginationNav.innerHTML = '';
+
+            if (pagination.pages <= 1) return;
+
+            // Previous button
+            const prevLi = document.createElement('li');
+            prevLi.className = `page-item ${pagination.page === 1 ? 'disabled' : ''}`;
+            prevLi.innerHTML = `<a class="page-link" href="#" onclick="goToPage(${pagination.page - 1}); return false;">السابق</a>`;
+            paginationNav.appendChild(prevLi);
+
+            // Page numbers
+            const startPage = Math.max(1, pagination.page - 2);
+            const endPage = Math.min(pagination.pages, pagination.page + 2);
+
+            if (startPage > 1) {
+                const li = document.createElement('li');
+                li.className = 'page-item';
+                li.innerHTML = `<a class="page-link" href="#" onclick="goToPage(1); return false;">1</a>`;
+                paginationNav.appendChild(li);
+                if (startPage > 2) {
+                    const li = document.createElement('li');
+                    li.className = 'page-item disabled';
+                    li.innerHTML = `<span class="page-link">...</span>`;
+                    paginationNav.appendChild(li);
+                }
+            }
+
+            for (let i = startPage; i <= endPage; i++) {
+                const li = document.createElement('li');
+                li.className = `page-item ${i === pagination.page ? 'active' : ''}`;
+                li.innerHTML = `<a class="page-link" href="#" onclick="goToPage(${i}); return false;">${i}</a>`;
+                paginationNav.appendChild(li);
+            }
+
+            if (endPage < pagination.pages) {
+                if (endPage < pagination.pages - 1) {
+                    const li = document.createElement('li');
+                    li.className = 'page-item disabled';
+                    li.innerHTML = `<span class="page-link">...</span>`;
+                    paginationNav.appendChild(li);
+                }
+                const li = document.createElement('li');
+                li.className = 'page-item';
+                li.innerHTML = `<a class="page-link" href="#" onclick="goToPage(${pagination.pages}); return false;">${pagination.pages}</a>`;
+                paginationNav.appendChild(li);
+            }
+
+            // Next button
+            const nextLi = document.createElement('li');
+            nextLi.className = `page-item ${pagination.page === pagination.pages ? 'disabled' : ''}`;
+            nextLi.innerHTML = `<a class="page-link" href="#" onclick="goToPage(${pagination.page + 1}); return false;">التالي</a>`;
+            paginationNav.appendChild(nextLi);
+        }
+
+        function updateStats(data, pagination) {
+            document.getElementById('totalRecords').textContent = pagination.total.toLocaleString('en-US');
+            document.getElementById('currentPage').textContent = `${pagination.page} / ${pagination.pages}`;
+
+            if (data.length > 0) {
+                // حساب متوسط سعر النحاس
+                const copperPrices = data.map(row => parseFloat(row.copper_price)).filter(price => !isNaN(price));
+                if (copperPrices.length > 0) {
+                    const avg = copperPrices.reduce((a, b) => a + b, 0) / copperPrices.length;
+                    document.getElementById('avgCopperPrice').textContent = '$' + formatNumber(avg);
+                }
+            }
+            
+            // عرض تاريخ اليوم في كارد آخر تحديث
+            const today = new Date();
+            const todayStr = today.toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' });
+            document.getElementById('lastDate').textContent = todayStr;
+        }
+
+        function goToPage(page) {
+            currentPage = page;
+            loadData();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function changePerPage() {
+            currentPerPage = parseInt(document.getElementById('perPageSelect').value);
+            currentPage = 1;
+            loadData();
+        }
+
+        function searchData() {
+            currentSearch = document.getElementById('searchInput').value;
+            currentPage = 1;
+            loadData();
+        }
+
+        function clearSearch() {
+            document.getElementById('searchInput').value = '';
+            currentSearch = '';
+            currentPage = 1;
+            loadData();
+        }
+
+        function sortTable(column) {
+            // الترتيب فقط على التاريخ وتنازلي دائماً
+            // لا يمكن تغيير الترتيب
+            return;
+        }
+
+        function formatNumber(value) {
+            if (value === null || value === undefined || isNaN(value)) return '--';
+            return parseFloat(value).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+    </script>
+</body>
+</html>
+

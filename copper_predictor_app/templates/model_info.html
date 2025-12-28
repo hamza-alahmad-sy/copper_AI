@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>معلومات النموذج</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
@@ -12,7 +13,7 @@
 
     <div class="main-container">
         <div class="page-header">
-            <h1>📚 معلومات النموذج</h1>
+            <h1><i class="bi bi-info-circle" style="color: #667eea; margin-left: 10px;"></i> معلومات النموذج</h1>
             <p class="page-subtitle">عرض ملخص البيانات، مقاييس الأداء ومعاملات الانحدار</p>
         </div>
 
@@ -60,19 +61,19 @@
             // summary
             const s = data.summary;
             document.getElementById('dataSummary').innerHTML = `
-                <div>عدد الصفوف: <strong>${s.rows}</strong></div>
-                <div>عدد الأعمدة: <strong>${s.columns}</strong></div>
-                <div>متوسط السعر (target mean): <strong>$${s.target_mean.toFixed(2)}</strong></div>
-                <div>انحراف معياري للسعر: <strong>${s.target_std.toFixed(2)}</strong></div>
+                <div>عدد الصفوف: <strong>${s.rows.toLocaleString('en-US')}</strong></div>
+                <div>عدد الأعمدة: <strong>${s.columns.toLocaleString('en-US')}</strong></div>
+                <div>متوسط السعر (target mean): <strong>$${s.target_mean.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong></div>
+                <div>انحراف معياري للسعر: <strong>${s.target_std.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong></div>
             `;
 
             // metrics (عرض MAE, MSE, RMSE, MAPE)
             const m = data.metrics;
             document.getElementById('metricsArea').innerHTML = `
-                <div>MAE: <strong>${m.mae !== undefined ? '$' + m.mae.toFixed(3) : 'N/A'}</strong></div>
-                <div>MSE: <strong>${m.mse !== undefined ? '$' + m.mse.toFixed(3) : 'N/A'}</strong></div>
-                <div>RMSE: <strong>${m.rmse !== undefined ? '$' + m.rmse.toFixed(3) : 'N/A'}</strong></div>
-                <div>MAPE: <strong>${m.mape === null || m.mape === undefined ? 'N/A' : m.mape.toFixed(2) + '%'}</strong></div>
+                <div>MAE: <strong>${m.mae !== undefined ? '$' + m.mae.toLocaleString('en-US', {minimumFractionDigits: 3, maximumFractionDigits: 3}) : 'N/A'}</strong></div>
+                <div>MSE: <strong>${m.mse !== undefined ? '$' + m.mse.toLocaleString('en-US', {minimumFractionDigits: 3, maximumFractionDigits: 3}) : 'N/A'}</strong></div>
+                <div>RMSE: <strong>${m.rmse !== undefined ? '$' + m.rmse.toLocaleString('en-US', {minimumFractionDigits: 3, maximumFractionDigits: 3}) : 'N/A'}</strong></div>
+                <div>MAPE: <strong>${m.mape === null || m.mape === undefined ? 'N/A' : m.mape.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + '%'}</strong></div>
             `;
 
             // coefficients table
@@ -80,12 +81,12 @@
             const cols = data.feature_columns || [];
             let tableHtml = '<table class="table table-striped"><thead><tr><th>المتغير</th><th>المعامل</th></tr></thead><tbody>';
             for (let i=0;i<cols.length;i++){
-                const val = coeffs[i] !== undefined ? coeffs[i].toFixed(6) : 'N/A';
+                const val = coeffs[i] !== undefined ? coeffs[i].toLocaleString('en-US', {minimumFractionDigits: 6, maximumFractionDigits: 6}) : 'N/A';
                 tableHtml += `<tr><td>${cols[i]}</td><td>${val}</td></tr>`;
             }
             tableHtml += '</tbody></table>';
             if (data.intercept !== null) {
-                tableHtml += `<div>Intercept: <strong>${data.intercept.toFixed(6)}</strong></div>`;
+                tableHtml += `<div>Intercept: <strong>${data.intercept.toLocaleString('en-US', {minimumFractionDigits: 6, maximumFractionDigits: 6})}</strong></div>`;
             }
 
             document.getElementById('coeffTable').innerHTML = tableHtml;
