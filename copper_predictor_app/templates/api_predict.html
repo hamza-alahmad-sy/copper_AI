@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>التنبؤ التلقائي - توقعات النحاس</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <style>
+        .auto-update-info {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .timer-value {
+            font-size: 2.5rem;
+            font-weight: bold;
+            display: inline-block;
+            margin: 0 0.5rem;
+        }
+
+        .data-step {
+            display: flex;
+            align-items: center;
+            margin: 1rem 0;
+            padding: 1rem;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+
+        .data-step.loading {
+            border-left-color: #ffc107;
+        }
+
+        .data-step.success {
+            border-left-color: #28a745;
+        }
+
+        .data-step.error {
+            border-left-color: #dc3545;
+        }
+
+        .step-icon {
+            font-size: 1.8rem;
+            margin-right: 1rem;
+            min-width: 50px;
+        }
+
+        .step-content {
+            flex: 1;
+        }
+
+        .step-label {
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 0.2rem;
+        }
+
+        .step-value {
+            font-size: 1.1rem;
+            color: #667eea;
+            font-weight: bold;
+        }
+
+        .step-status {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            margin-top: 0.5rem;
+        }
+
+        .step-status.loading {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .step-status.success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .step-status.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .data-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        @media (max-width: 768px) {
+            .timer-value {
+                font-size: 2rem;
+            }
+
+            .data-step {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .step-icon {
+                margin-right: 0;
+                margin-bottom: 0.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    {% include 'navbar.html' %}
+    <div class="main-container">
+        <!-- Page Header -->
+        <div class="page-header fade-in">
+            <h1>🤖 التنبؤ التلقائي</h1>
+            <p class="page-subtitle">توقعات النحاس بناءً على بيانات السوق الحقيقية المحدثة تلقائياً</p>
+        </div>
+
+        <!-- معلومات التحديث التلقائي -->
+        <div class="auto-update-info fade-in">
+            <div style="text-align: center; margin-bottom: 1rem;">
+                <p style="font-size: 1.1rem; margin: 0;">⏱️ التحديث التلقائي خلال</p>
+                <div class="timer-value" id="timerDisplay">15:00</div>
+                <p style="font-size: 0.9rem; margin: 0.5rem 0 0 0;">دقيقة:ثانية</p>
+            </div>
+            <p style="text-align: center; margin: 0; font-size: 0.95rem; opacity: 0.9;">
+                📡 يتم جلب البيانات الحقيقية تلقائياً من الأسواق العالمية
+            </p>
+        </div>
+
+        <!-- خطوات جلب البيانات -->
+        <div class="card fade-in mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">📊 خطوات جلب البيانات</h5>
+            </div>
+            <div class="card-body">
+                <div id="stepsContainer">
+                    <!-- سيتم ملأها بـ JavaScript -->
+                </div>
+            </div>
+        </div>
+
+        <!-- النتيجة النهائية -->
+        <div class="card fade-in">
+            <div class="card-header">
+                <h5 class="mb-0">✅ النتيجة النهائية</h5>
+            </div>
+            <div class="card-body">
+                <div id="loading" class="loading">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">جاري التحميل...</span>
+                    </div>
+                    <p class="loading-text">جاري جلب البيانات من الأسواق الحقيقية...</p>
+                </div>
+
+                <div id="result" style="display: none;">
+                    <div id="error-message"></div>
+
+                    <div class="data-row">
+                        <div class="result-item">
+                            <div class="result-label">🔮 السعر المتوقع للنحاس</div>
+                            <div class="result-value" id="predictedPrice">-</div>
+                        </div>
+
+                        <div class="result-item">
+                            <div class="result-label">🛢️ سعر النفط Brent</div>
+                            <div class="result-value" id="oilPrice">-</div>
+                        </div>
+
+                        <div class="result-item">
+                            <div class="result-label">💵 مؤشر الدولار DXY</div>
+                            <div class="result-value" id="usdIndex">-</div>
+                        </div>
+
+                        <div class="result-item">
+                            <div class="result-label">📈 معنويات السوق</div>
+                            <div class="result-value" id="sentiment">-</div>
+                        </div>
+                    </div>
+
+                    <div class="info-box mt-3">
+                        <strong>ℹ️ ملخص المتغيرات المستخدمة:</strong>
+                        <div id="featuresInfo" style="margin-top: 1rem; font-size: 0.9rem;"></div>
+                    </div>
+
+                    <button class="refresh-btn" onclick="loadDataNow()" style="width: 100%; margin-top: 1.5rem; text-align: center; justify-content: center;">
+                        🔄 تحديث فوري
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let updateInterval = null;
+        let remainingSeconds = 900; // 15 minutes = 900 seconds
+
+        const steps = [
+            { id: 'oil', label: '🛢️ جلب سعر النفط Brent', icon: '⛽' },
+            { id: 'dxy', label: '💵 جلب مؤشر الدولار DXY', icon: '💱' },
+            { id: 'sentiment', label: '📰 جلب معنويات السوق', icon: '📡' },
+            { id: 'variables', label: '📊 تقدير بقية المتغيرات', icon: '📈' },
+            { id: 'model', label: '🧠 تشغيل النموذج والتنبؤ', icon: '⚙️' }
+        ];
+
+        function initializeSteps() {
+            const container = document.getElementById('stepsContainer');
+            container.innerHTML = steps.map(step => `
+                <div class="data-step" id="step-${step.id}">
+                    <div class="step-icon">${step.icon}</div>
+                    <div class="step-content">
+                        <div class="step-label">${step.label}</div>
+                        <div class="step-value" id="step-${step.id}-value">--</div>
+                        <span class="step-status loading" id="step-${step.id}-status">جاري التحميل...</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function updateStepStatus(stepId, status, value = null) {
+            const stepEl = document.getElementById(`step-${stepId}`);
+            const statusEl = document.getElementById(`step-${stepId}-status`);
+            const valueEl = document.getElementById(`step-${stepId}-value`);
+
+            stepEl.classList.remove('loading', 'success', 'error');
+            statusEl.classList.remove('loading', 'success', 'error');
+
+            if (status === 'loading') {
+                statusEl.textContent = '⏳ جاري التحميل...';
+                stepEl.classList.add('loading');
+                statusEl.classList.add('loading');
+            } else if (status === 'success') {
+                statusEl.textContent = '✅ تم بنجاح';
+                stepEl.classList.add('success');
+                statusEl.classList.add('success');
+                if (value) valueEl.textContent = value;
+            } else if (status === 'error') {
+                statusEl.textContent = '❌ خطأ';
+                stepEl.classList.add('error');
+                statusEl.classList.add('error');
+                if (value) valueEl.textContent = value;
+            }
+        }
+
+        async function loadDataNow() {
+            initializeSteps();
+            remainingSeconds = 900;
+            updateTimer();
+
+            const loadingDiv = document.getElementById('loading');
+            const resultDiv = document.getElementById('result');
+            const errorMsg = document.getElementById('error-message');
+
+            loadingDiv.style.display = 'block';
+            resultDiv.style.display = 'none';
+            errorMsg.innerHTML = '';
+
+            try {
+                // خطوة 1: جلب سعر النفط
+                updateStepStatus('oil', 'loading');
+                
+                // خطوة 2: جلب مؤشر الدولار
+                updateStepStatus('dxy', 'loading');
+
+                // خطوة 3: جلب معنويات السوق
+                updateStepStatus('sentiment', 'loading');
+
+                // خطوة 4: تقدير المتغيرات
+                updateStepStatus('variables', 'loading');
+
+                // خطوة 5: تشغيل النموذج
+                updateStepStatus('model', 'loading');
+
+                // الآن جلب كل شيء مرة واحدة
+                const response = await fetch('/api_predict');
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                if (!data.success && data.error) {
+                    throw new Error(data.error);
+                }
+
+                // تحديث حالات الخطوات بناءً على البيانات
+                updateStepStatus('oil', 'success', `$${parseFloat(data.oil_price).toFixed(2)}`);
+                updateStepStatus('dxy', 'success', parseFloat(data.usd_index).toFixed(2));
+                updateStepStatus('sentiment', 'success', `${(parseFloat(data.market_sentiment) * 100).toFixed(1)}%`);
+                updateStepStatus('variables', 'success', 'تم التقدير');
+                updateStepStatus('model', 'success', 'اكتمل');
+
+                // عرض البيانات النهائية
+                document.getElementById('predictedPrice').textContent = 
+                    `$${parseFloat(data.predicted_copper_price).toFixed(2)}`;
+                
+                document.getElementById('oilPrice').textContent = 
+                    `$${parseFloat(data.oil_price).toFixed(2)}`;
+                
+                document.getElementById('usdIndex').textContent = 
+                    parseFloat(data.usd_index).toFixed(2);
+                
+                document.getElementById('sentiment').textContent = 
+                    `${(parseFloat(data.market_sentiment) * 100).toFixed(1)}%`;
+
+                // عرض المتغيرات المستخدمة
+                if (data.features_used) {
+                    const featuresHTML = Object.entries(data.features_used)
+                        .map(([key, value]) => `<div><strong>${key}:</strong> ${parseFloat(value).toFixed(2)}</div>`)
+                        .join('');
+                    document.getElementById('featuresInfo').innerHTML = featuresHTML;
+                }
+
+                errorMsg.innerHTML = '<div class="alert alert-success">✅ تم جلب البيانات بنجاح من الأسواق الحقيقية</div>';
+                
+                loadingDiv.style.display = 'none';
+                resultDiv.style.display = 'block';
+
+            } catch (error) {
+                console.error('خطأ:', error);
+                updateStepStatus('model', 'error', error.message);
+                
+                errorMsg.innerHTML = `<div class="alert alert-danger">❌ خطأ: ${error.message}</div>`;
+                
+                document.getElementById('predictedPrice').textContent = 'خطأ';
+                document.getElementById('oilPrice').textContent = 'خطأ';
+                document.getElementById('usdIndex').textContent = 'خطأ';
+                document.getElementById('sentiment').textContent = 'خطأ';
+
+                loadingDiv.style.display = 'none';
+                resultDiv.style.display = 'block';
+            }
+        }
+
+        function formatTime(s) {
+            const m = Math.floor(s / 60);
+            const sec = s % 60;
+            return `${m.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
+        }
+
+        function updateTimer() {
+            const timerDisplay = document.getElementById('timerDisplay');
+            if (!timerDisplay) return;
+            timerDisplay.textContent = formatTime(remainingSeconds);
+
+            if (remainingSeconds > 0) {
+                remainingSeconds--;
+                setTimeout(updateTimer, 1000);
+            } else {
+                loadDataNow();
+            }
+        }
+
+        // تحميل البيانات عند فتح الصفحة وتفعيل الموقت
+        window.addEventListener('load', () => {
+            loadDataNow();
+        });
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

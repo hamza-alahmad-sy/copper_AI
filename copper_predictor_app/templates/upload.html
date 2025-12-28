@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إدخال البيانات - توقعات النحاس</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <style>
+        /* ضمان اتجاه RTL داخل الصفحة إذا لم يتم تغطيته في style.css */
+        body { direction: rtl; }
+    </style>
+</head>
+<body>
+    {% include 'navbar.html' %}
+
+    <div class="main-container container py-4">
+        <div class="page-header mb-4">
+            <h1 class="h3">📄 صفحة إدخال البيانات</h1>
+            <p class="text-muted">ارفع ملف CSV لدمجه مع مجموعة البيانات الحالية</p>
+        </div>
+
+        {% if flash_message %}
+            <div class="alert {{ 'alert-success' if flash_success else 'alert-danger' }}">{{ flash_message }}</div>
+        {% endif %}
+
+        <div class="card mb-4">
+            <div class="card-body">
+                <form action="/upload" method="post" enctype="multipart/form-data" class="row g-3 align-items-center">
+                    <div class="col-12 col-md-8">
+                        <label for="csv_file" class="form-label">اختر ملف CSV الموثق مسبقًا</label>
+                        <input class="form-control" type="file" id="csv_file" name="csv_file" accept=".csv" required>
+                        <div class="form-text">سيتم دمج الملف مع: <strong>data/copper_prediction_dataset_1000.csv</strong></div>
+                    </div>
+                    <div class="col-12 col-md-4 d-flex align-items-end">
+                        <button class="btn btn-primary w-100" type="submit">رفع ودمج</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        {% if stats %}
+            <div class="row g-3 mb-4">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">📊 إحصائيات بعد الدمج</h5>
+                            <ul class="list-unstyled mb-0">
+                                <li><strong>عدد الصفوف:</strong> {{ stats.rows }}</li>
+                                <li><strong>عدد الأعمدة:</strong> {{ stats.columns }}</li>
+                                <li><strong>أسماء الأعمدة:</strong> {{ stats.headers }}</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">🔍 تحقق الأعمدة</h5>
+                            <p><strong>مطابقة الأعمدة:</strong> {{ 'نعم' if stats.columns_match else 'لا' }}</p>
+                            {% if not stats.columns_match %}
+                                <div class="text-danger">الأعمدة لا تطابق الملف الأصلي. الرجاء التأكد من التنسيق.</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+
+        <div class="card">
+            <div class="card-body d-flex justify-content-between align-items-center">
+                <div>
+                    <p class="mb-0">بعد الدمج يمكنك إعادة تدريب النموذج باستخدام الملف المدمج.</p>
+                    <small class="text-muted">الملف: <strong>data/copper_prediction_dataset_1000.csv</strong></small>
+                </div>
+                <form action="/retrain" method="post" class="mb-0">
+                    <button class="btn btn-outline-secondary" type="submit">🔁 إعادة تدريب النموذج</button>
+                </form>
+            </div>
+        </div>
+
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

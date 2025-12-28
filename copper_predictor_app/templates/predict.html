@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>التنبؤ اليدوي - توقعات النحاس</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+        <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    {% include 'navbar.html' %}
+    <div class="main-container">
+        <!-- Page Header -->
+        <div class="page-header fade-in">
+            <h1>🎯 التنبؤ اليدوي بأسعار النحاس</h1>
+            <p class="page-subtitle">أدخل المتغيرات السوقية للحصول على توقعات دقيقة</p>
+        </div>
+
+        <div class="row">
+            <!-- نموذج الإدخال -->
+            <div class="col-lg-6 fade-in">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">📝 مؤشرات السوق</h5>
+                    </div>
+                    <div class="card-body">
+                        <form id="predictionForm">
+                            <div class="mb-3">
+                                <label class="form-label">📊 مؤشر الطلب العالمي</label>
+                                <input type="number" step="0.01" class="form-control" name="global_demand_index" placeholder="مثال: 50.5" required>
+                                <small class="text-muted">قيمة بين 0 و 100</small>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">🛢️ سعر النفط (USD)</label>
+                                <input type="number" step="0.01" class="form-control" name="oil_price" placeholder="مثال: 75.50" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">💵 مؤشر الدولار DXY</label>
+                                <input type="number" step="0.01" class="form-control" name="usd_index" placeholder="مثال: 102.50" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">🏭 الإنتاج الصناعي الصيني</label>
+                                <input type="number" step="0.01" class="form-control" name="china_industry_output" placeholder="مثال: 55.0" required>
+                                <small class="text-muted">نسبة النمو (%)</small>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">⚡ مؤشر تكاليف الطاقة</label>
+                                <input type="number" step="0.01" class="form-control" name="energy_cost_index" placeholder="مثال: 65.0" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">😊 معنويات السوق</label>
+                                <input type="number" step="0.01" min="-1" max="1" class="form-control" name="market_sentiment" placeholder="من -1 إلى 1" required>
+                                <small class="text-muted">-1 = سلبية جداً، 0 = محايدة، 1 = إيجابية جداً</small>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">⚠️ مؤشر انقطاع الإمدادات</label>
+                                <input type="number" step="0.01" class="form-control" name="supply_disruption_index" placeholder="مثال: 30.0" required>
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100">
+                                🚀 حساب التنبؤ
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- النتيجة والتحليل -->
+            <div class="col-lg-6 fade-in">
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h5 class="mb-0">🎯 السعر المتوقع</h5>
+                    </div>
+                    <div class="card-body text-center">
+                        <div class="result-value" id="result">--</div>
+                        <p class="text-muted mt-2">سعر النحاس المتوقع بناءً على المدخلات</p>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">📊 تأثير العوامل</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-wrapper" style="height: 300px;">
+                            <canvas id="impactChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="/static/js/predict.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
