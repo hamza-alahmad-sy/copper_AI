@@ -117,13 +117,13 @@
 <body>
     {% include 'navbar.html' %}
     <div class="main-container">
-        <!-- Page Header -->
+        
         <div class="page-header fade-in">
             <h1>🤖 التنبؤ التلقائي</h1>
             <p class="page-subtitle">توقعات النحاس بناءً على بيانات السوق الحقيقية المحدثة تلقائياً</p>
         </div>
 
-        <!-- معلومات التحديث التلقائي -->
+        
         <div class="auto-update-info fade-in">
             <div style="text-align: center; margin-bottom: 1rem;">
                 <p style="font-size: 1.1rem; margin: 0;">⏱️ التحديث التلقائي خلال</p>
@@ -135,19 +135,19 @@
             </p>
         </div>
 
-        <!-- خطوات جلب البيانات -->
+        
         <div class="card fade-in mb-4">
             <div class="card-header">
                 <h5 class="mb-0">📊 خطوات جلب البيانات</h5>
             </div>
             <div class="card-body">
                 <div id="stepsContainer">
-                    <!-- سيتم ملأها بـ JavaScript -->
+                    
                 </div>
             </div>
         </div>
 
-        <!-- النتيجة النهائية -->
+        
         <div class="card fade-in">
             <div class="card-header">
                 <h5 class="mb-0">✅ النتيجة النهائية</h5>
@@ -165,8 +165,13 @@
 
                     <div class="data-row">
                         <div class="result-item">
-                            <div class="result-label">🔮 السعر المتوقع للنحاس</div>
+                            <div class="result-label">🔮 السعر المتوقع للنحاس لليوم التالي</div>
                             <div class="result-value" id="predictedPrice">-</div>
+                        </div>
+
+                        <div class="result-item">
+                            <div class="result-label">🧱 سعر النحاس الحالي</div>
+                            <div class="result-value" id="copperPrice">-</div>
                         </div>
 
                         <div class="result-item">
@@ -200,12 +205,13 @@
 
     <script>
         let updateInterval = null;
-        let remainingSeconds = 900; // 15 minutes = 900 seconds
+        let remainingSeconds = 900; 
 
         const steps = [
             { id: 'oil', label: '🛢️ جلب سعر النفط Brent', icon: '⛽' },
             { id: 'dxy', label: '💵 جلب مؤشر الدولار DXY', icon: '💱' },
             { id: 'sentiment', label: '📰 جلب معنويات السوق', icon: '📡' },
+            { id: 'copper', label: '🧱 جلب سعر النحاس من Yahoo Finance', icon: '🧱' },
             { id: 'variables', label: '📊 تقدير بقية المتغيرات', icon: '📈' },
             { id: 'model', label: '🧠 تشغيل النموذج والتنبؤ', icon: '⚙️' }
         ];
@@ -263,22 +269,25 @@
             errorMsg.innerHTML = '';
 
             try {
-                // خطوة 1: جلب سعر النفط
+                
                 updateStepStatus('oil', 'loading');
                 
-                // خطوة 2: جلب مؤشر الدولار
+                
                 updateStepStatus('dxy', 'loading');
 
-                // خطوة 3: جلب معنويات السوق
+                
                 updateStepStatus('sentiment', 'loading');
 
-                // خطوة 4: تقدير المتغيرات
+                
+                updateStepStatus('copper', 'loading');
+
+                
                 updateStepStatus('variables', 'loading');
 
-                // خطوة 5: تشغيل النموذج
+                
                 updateStepStatus('model', 'loading');
 
-                // الآن جلب كل شيء مرة واحدة
+                
                 const response = await fetch('/api_predict');
                 
                 if (!response.ok) {
@@ -291,16 +300,20 @@
                     throw new Error(data.error);
                 }
 
-                // تحديث حالات الخطوات بناءً على البيانات
+                
                 updateStepStatus('oil', 'success', `$${parseFloat(data.oil_price).toFixed(2)}`);
                 updateStepStatus('dxy', 'success', parseFloat(data.usd_index).toFixed(2));
                 updateStepStatus('sentiment', 'success', `${(parseFloat(data.market_sentiment) * 100).toFixed(1)}%`);
+                updateStepStatus('copper', 'success', `$${parseFloat(data.copper_price).toFixed(2)}`);
                 updateStepStatus('variables', 'success', 'تم التقدير');
                 updateStepStatus('model', 'success', 'اكتمل');
 
-                // عرض البيانات النهائية
+                
                 document.getElementById('predictedPrice').textContent = 
                     `$${parseFloat(data.predicted_copper_price).toFixed(2)}`;
+
+                document.getElementById('copperPrice').textContent = 
+                    `$${parseFloat(data.copper_price).toFixed(2)}`;
                 
                 document.getElementById('oilPrice').textContent = 
                     `$${parseFloat(data.oil_price).toFixed(2)}`;
@@ -311,7 +324,7 @@
                 document.getElementById('sentiment').textContent = 
                     `${(parseFloat(data.market_sentiment) * 100).toFixed(1)}%`;
 
-                // عرض المتغيرات المستخدمة
+                
                 if (data.features_used) {
                     const featuresHTML = Object.entries(data.features_used)
                         .map(([key, value]) => `<div><strong>${key}:</strong> ${parseFloat(value).toFixed(2)}</div>`)
@@ -359,7 +372,7 @@
             }
         }
 
-        // تحميل البيانات عند فتح الصفحة وتفعيل الموقت
+        
         window.addEventListener('load', () => {
             loadDataNow();
         });

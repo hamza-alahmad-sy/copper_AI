@@ -5,14 +5,14 @@ document.getElementById('predictionForm').addEventListener('submit', async funct
         const formData = new FormData(this);
         const data = Object.fromEntries(formData.entries());
 
-        // تحويل القيم إلى أرقام
+        
         for (let key in data) {
             data[key] = parseFloat(data[key]);
         }
         
         console.log('إرسال البيانات:', data);
 
-        // إرسال البيانات إلى الخادم
+        
         const response = await fetch('/predict', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -26,15 +26,28 @@ document.getElementById('predictionForm').addEventListener('submit', async funct
         const result = await response.json();
         console.log('نتيجة التنبؤ:', result);
 
-        // عرض السعر المتوقع
+        
         document.getElementById('result').textContent =
             `$${result.predicted_copper_price.toFixed(2)}`;
 
-        // جلب معاملات النموذج من الخادم
-        const coefficients = result.coefficients;  
-        console.log("معاملات النموذج:", coefficients);
+        
+        let coefficients = result.coefficients;
+        console.log("معاملات النموذج (خام):", coefficients);
 
-        // أسماء المتغيرات بنفس ترتيب النموذج
+        
+        if (!coefficients) {
+            console.warn("لم يتم إرجاع معاملات من الخادم، لن يتم رسم تأثير العوامل.");
+            return;
+        }
+
+        
+        if (Array.isArray(coefficients) && Array.isArray(coefficients[0])) {
+            coefficients = coefficients[0];
+        }
+
+        console.log("معاملات النموذج (بعد التسوية):", coefficients);
+
+        
         const labels = [
             "مؤشر الطلب العالمي",
             "سعر النفط",
@@ -42,7 +55,8 @@ document.getElementById('predictionForm').addEventListener('submit', async funct
             "الإنتاج الصناعي الصيني",
             "مؤشر تكاليف الطاقة",
             "معنويات السوق",
-            "مؤشر انقطاع الإمدادات"
+            "مؤشر انقطاع الإمدادات",
+            "سعر النحاس الحالي"
         ];
 
         const labelKeys = [
@@ -52,29 +66,35 @@ document.getElementById('predictionForm').addEventListener('submit', async funct
             "china_industry_output",
             "energy_cost_index",
             "market_sentiment",
-            "supply_disruption_index"
+            "supply_disruption_index",
+            "copper_price"
         ];
 
-        // حساب التأثيرات ديناميكياً
-        const impacts = labelKeys.map((key, index) => data[key] * coefficients[index]);
+        
+        const impacts = labelKeys.map((key, index) => {
+            const coef = coefficients[index] ?? 0;
+            console.log(`معامل ${key}: ${coef}`);
+            return coef;
+        });
 
         console.log('المتغيرات:', labelKeys);
         console.log('التأثيرات:', impacts);
 
-        // ألوان مختلفة لكل عمود
+        
         const colors = [
-            'rgba(255, 99, 132, 0.7)',    // أحمر - الطلب العالمي
-            'rgba(54, 162, 235, 0.7)',    // أزرق - النفط
-            'rgba(255, 206, 86, 0.7)',    // أصفر - الدولار
-            'rgba(75, 192, 192, 0.7)',    // فيروزي - الإنتاج الصيني
-            'rgba(153, 102, 255, 0.7)',   // بنفسجي - الطاقة
-            'rgba(255, 159, 64, 0.7)',    // برتقالي - المشاعر
-            'rgba(99, 255, 132, 0.7)'     // أخضر - انقطاع الإمدادات
+            'rgba(255, 99, 132, 0.7)',    
+            'rgba(54, 162, 235, 0.7)',    
+            'rgba(255, 206, 86, 0.7)',    
+            'rgba(75, 192, 192, 0.7)',    
+            'rgba(153, 102, 255, 0.7)',   
+            'rgba(255, 159, 64, 0.7)',    
+            'rgba(99, 255, 132, 0.7)',
+            'rgba(201, 203, 207, 0.7)'     
         ];
 
         const borderColors = colors.map(c => c.replace("0.7", "1"));
 
-        // رسم المخطط البياني
+        
         const canvasElement = document.getElementById('impactChart');
         if (!canvasElement) {
             console.error('عنصر Canvas غير موجود!');

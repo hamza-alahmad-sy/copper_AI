@@ -11,16 +11,16 @@
 <body>
     {% include 'navbar.html' %}
     <div class="main-container">
-        <!-- Page Header -->
+        
         <div class="page-header fade-in">
             <h1>📈 لوحة التحكم - توقعات النحاس</h1>
             <p class="page-subtitle">مراقبة أسعار النحاس ومؤشرات السوق الحقيقية</p>
         </div>
 
-        <!-- السعر المتوقع -->
+        
         <div class="card mb-4 fade-in">
             <div class="card-header">
-                <h5 class="mb-0">🔮 السعر المتوقع للنحاس</h5>
+                <h5 class="mb-0">🔮 السعر المتوقع للنحاس لليوم التالي</h5>
             </div>
             <div class="card-body text-center">
                 <p class="result-value" id="tomorrowPrediction">--</p>
@@ -28,7 +28,7 @@
             </div>
         </div>
 
-        <!-- الرسم البياني التاريخي -->
+        
         <div class="card mb-4 fade-in">
             <div class="card-header">
                 <h5 class="mb-0">📉 تاريخ أسعار النحاس (آخر 60 يوم)</h5>
@@ -40,7 +40,7 @@
             </div>
         </div>
 
-        <!-- مؤشرات السوق -->
+        
         <div class="grid-3-cols fade-in">
             <div class="stat-card primary">
                 <div class="stat-label">🛢️ سعر النفط Brent</div>
@@ -59,7 +59,7 @@
             </div>
         </div>
 
-        <!-- زر التحديث -->
+        
         <div class="text-center mt-4 fade-in">
             <button class="refresh-btn" onclick="loadDashboardData()">
                 🔄 تحديث البيانات
@@ -72,17 +72,17 @@
             try {
                 const response = await fetch('/dashboard-data');
                 const data = await response.json();
-                // إزالة رسالة التحميل إن وجدت
+                
                 const loadingEl = document.getElementById('dashboard-loading');
                 if (loadingEl) loadingEl.remove();
 
-                // عرض السعر المتوقع
+                
                 const tp = document.getElementById('tomorrowPrediction');
                 if (tp && typeof data.predicted_price === 'number') {
                     tp.textContent = `$${data.predicted_price.toFixed(2)}`;
                 }
 
-                // عرض مؤشرات السوق
+                
                 const oilEl = document.getElementById('oilPrice');
                 const usdEl = document.getElementById('usdIndex');
                 const sentEl = document.getElementById('marketSentiment');
@@ -90,11 +90,11 @@
                 if (usdEl && typeof data.usd_index === 'number') usdEl.textContent = data.usd_index.toFixed(2);
                 if (sentEl && typeof data.market_sentiment === 'number') sentEl.textContent = (data.market_sentiment * 100).toFixed(1) + '%';
 
-                // رسم الرسم البياني
+                
                 drawChart(data);
             } catch (error) {
                 console.error('Error loading dashboard data:', error);
-                // عرض خطأ ضمن الصفحة بدل alert
+                
                 const loadingEl = document.getElementById('dashboard-loading');
                 if (loadingEl) loadingEl.remove();
                 const container = document.querySelector('.main-container');
@@ -108,7 +108,7 @@
         function drawChart(data) {
             const ctx = document.getElementById('copperHistoryChart').getContext('2d');
             
-            // تدمير الرسم البياني القديم إن وجد
+            
             if (window.copperChart) {
                 window.copperChart.destroy();
             }
@@ -158,7 +158,7 @@
             });
         }
 
-        // Loading UI elements
+        
         const dashboardLoadingHtml = `
             <div id="dashboard-loading" class="loading" style="text-align:center;padding:30px;">
                 <div class="spinner-border" role="status"><span class="visually-hidden">جاري التحميل...</span></div>
@@ -168,12 +168,12 @@
         const dashboardErrorHtml = (msg) => `
             <div class="alert alert-danger" role="alert">خطأ في تحميل البيانات: ${msg}</div>`;
 
-        // تحميل البيانات عند فتح الصفحة
+        
         window.addEventListener('load', () => {
-            // إظهار حالة التحميل داخل المنطقة الرئيسية
+            
             const container = document.querySelector('.main-container');
             if (container) {
-                // إذا لم يكن هناك عنصر تحميل، أضفه أعلى المحتوى
+                
                 if (!document.getElementById('dashboard-loading')) {
                     container.insertAdjacentHTML('afterbegin', dashboardLoadingHtml);
                 }

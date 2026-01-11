@@ -58,7 +58,7 @@
                 return;
             }
 
-            // summary
+            
             const s = data.summary;
             document.getElementById('dataSummary').innerHTML = `
                 <div>عدد الصفوف: <strong>${s.rows.toLocaleString('en-US')}</strong></div>
@@ -67,7 +67,7 @@
                 <div>انحراف معياري للسعر: <strong>${s.target_std.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong></div>
             `;
 
-            // metrics (عرض MAE, MSE, RMSE, MAPE)
+            
             const m = data.metrics;
             document.getElementById('metricsArea').innerHTML = `
                 <div>MAE: <strong>${m.mae !== undefined ? '$' + m.mae.toLocaleString('en-US', {minimumFractionDigits: 3, maximumFractionDigits: 3}) : 'N/A'}</strong></div>
@@ -76,7 +76,7 @@
                 <div>MAPE: <strong>${m.mape === null || m.mape === undefined ? 'N/A' : m.mape.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + '%'}</strong></div>
             `;
 
-            // coefficients table
+            
             const coeffs = data.coefficients || [];
             const cols = data.feature_columns || [];
             let tableHtml = '<table class="table table-striped"><thead><tr><th>المتغير</th><th>المعامل</th></tr></thead><tbody>';

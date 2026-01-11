@@ -12,14 +12,14 @@
 <body>
     {% include 'navbar.html' %}
     <div class="main-container">
-        <!-- Page Header -->
+        
         <div class="page-header fade-in">
             <h1>🎯 التنبؤ اليدوي بأسعار النحاس</h1>
             <p class="page-subtitle">أدخل المتغيرات السوقية للحصول على توقعات دقيقة</p>
         </div>
 
         <div class="row">
-            <!-- نموذج الإدخال -->
+            
             <div class="col-lg-6 fade-in">
                 <div class="card">
                     <div class="card-header">
@@ -58,6 +58,11 @@
                                 <label class="form-label">⚠️ مؤشر انقطاع الإمدادات</label>
                                 <input type="number" step="0.01" class="form-control" name="supply_disruption_index" placeholder="مثال: 30.0" required>
                             </div>
+                            <div class="mb-3">
+                                <label class="form-label">🧱 سعر النحاس الحالي</label>
+                                <input type="number" step="0.01" class="form-control" name="copper_price" placeholder="مثال: 9500.0" required>
+                                <small class="text-muted">سعر النحاس الحالي (الهدف هو سعر النحاس لليوم التالي)</small>
+                            </div>
                             <button type="submit" class="btn btn-primary w-100">
                                 🚀 حساب التنبؤ
                             </button>
@@ -66,15 +71,15 @@
                 </div>
             </div>
 
-            <!-- النتيجة والتحليل -->
+            
             <div class="col-lg-6 fade-in">
                 <div class="card mb-3">
                     <div class="card-header">
-                        <h5 class="mb-0">🎯 السعر المتوقع</h5>
+                        <h5 class="mb-0">🎯 السعر المتوقع لليوم التالي</h5>
                     </div>
                     <div class="card-body text-center">
                         <div class="result-value" id="result">--</div>
-                        <p class="text-muted mt-2">سعر النحاس المتوقع بناءً على المدخلات</p>
+                        <p class="text-muted mt-2">سعر النحاس المتوقع لليوم التالي بناءً على المدخلات </p>
                     </div>
                 </div>
 
